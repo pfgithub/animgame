@@ -239,43 +239,70 @@ function drawpage() {
             updaterender([svgelsz.width, svgelsz.height]);
         };
 
-        const onpointermove = (e: PointerEvent) => {
-            if(e.pointerId !== ptrid) return;
-            e.preventDefault();
-            e.stopPropagation();
+        addPtrEvHs(e.pointerId, {
+            onpointermove(e) {
+                addpoint(e);
+            },
+            onpointerup(e) {
+                addpoint(e);
+                linesv.push(renderv);
+            },
+            onpointercancel() {
+                renderv.remove();
+            },
+        });
 
-            addpoint(e);
-        };
-        const onpointerup = (e: PointerEvent) => {
-            if(e.pointerId !== ptrid) return;
-            e.preventDefault();
-            e.stopPropagation();
-
-            addpoint(e);
-            clear();
-            linesv.push(renderv);
-        };
-        const onpointercancel = (e: PointerEvent) => {
-            if(e.pointerId !== ptrid) return;
-            e.preventDefault();
-            e.stopPropagation();
-
-            renderv.remove();
-            clear();
-        };
-        document.addEventListener("pointerup", onpointerup, { capture: true });
-        document.addEventListener("pointercancel", onpointercancel, { capture: true });
-        document.addEventListener("pointermove", onpointermove, { capture: true });
-        const clear = () => {
-            document.removeEventListener("pointerup", onpointerup, { capture: true });
-            document.removeEventListener("pointercancel", onpointercancel, { capture: true });
-            document.removeEventListener("pointermove", onpointermove, { capture: true });
-        };
         addpoint(e);
     });
 
     cfg.update();
 }
+
+
+type PtrEvHs = {
+    onpointermove: (e: PointerEvent) => void,
+    onpointerup: (e: PointerEvent) => void,
+    onpointercancel: () => void,
+};
+const ptridh = new Map<number, PtrEvHs>();
+
+function addPtrEvHs(tid: number, ptrevhs: PtrEvHs): void {
+    const pv = ptridh.get(tid);
+    if(pv != null) {
+        pv.onpointercancel();
+    }
+    ptridh.set(tid, ptrevhs);
+}
+
+const onpointermove = (e: PointerEvent) => {
+    const val = ptridh.get(e.pointerId);
+    if(val != null) {
+        e.preventDefault();
+        e.stopPropagation();
+        val.onpointermove(e);
+    }
+};
+const onpointerup = (e: PointerEvent) => {
+    const val = ptridh.get(e.pointerId);
+    if(val != null) {
+        e.preventDefault();
+        e.stopPropagation();
+        val.onpointerup(e);
+        ptridh.delete(e.pointerId);
+    }
+};
+const onpointercancel = (e: PointerEvent) => {
+    const val = ptridh.get(e.pointerId);
+    if(val != null) {
+        e.preventDefault();
+        e.stopPropagation();
+        val.onpointerup(e);
+        ptridh.delete(e.pointerId);
+    }
+};
+document.addEventListener("pointerup", onpointerup, { capture: true });
+document.addEventListener("pointercancel", onpointercancel, { capture: true });
+document.addEventListener("pointermove", onpointermove, { capture: true });
 
 drawpage();
 
