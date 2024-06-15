@@ -103,6 +103,12 @@ type ImgSrlz = {
     undo_strokes: StrokeSrlz[],
     redo_strokes: StrokeSrlz[],
 };
+function autosaveHandler(cb: () => void): HTMLDivElement {
+    const el = document.createElement("div");
+    el.setAttribute("class", "data-autosave_handler");
+    (el as any).__autosave_handler = cb;
+    return el;
+}
 function drawpage() {
     // TODO: save in local storage in case you reload
     // TODO: we're going to load arbitrary lines so make sure we can
@@ -121,7 +127,7 @@ function drawpage() {
     cfg.value.color = cfg.value.palette[0],
     cfg.value.background = cfg.value.palette[cfg.value.palette.length - 1],
 
-    rootel.innerHTML = `<div style="width:max(20rem,min(100vw, calc(100vh - 10rem)));margin:0 auto;background-color:white"><div style="padding:2rem">
+    rootel.innerHTML = `<div id="rootitm" style="width:max(20rem,min(100vw, calc(100vh - 10rem)));margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
             <div id="buttonshere2" style="display:flex;flex-direction:row;flex-wrap:wrap;;gap:0.5rem">
             </div>
@@ -132,6 +138,11 @@ function drawpage() {
             </div>
         </div>
     </div></div>`;
+    const rootitm: HTMLDivElement = rootel.querySelector("#rootitm")!;
+    rootitm.appendChild(autosaveHandler(() => {
+        localStorage.setItem("animgame-saved-drawing", JSON.stringify(srlz()));
+        console.log("saved");
+    }));
     const mysvg: SVGElement = rootel.querySelector("#mysvg")!;
     onupdateAndNow(cfg, () => {
         mysvg.style.backgroundColor = cfg.value.background;
@@ -197,6 +208,7 @@ function drawpage() {
 
         return srlzres;
     }
+
     // it seems to be a firefox-only bug
     // drawing with two fingers (if you set touch-action to none)
     // is only updating one and then the other. despite there being two
@@ -303,6 +315,11 @@ const onpointercancel = (e: PointerEvent) => {
 document.addEventListener("pointerup", onpointerup, { capture: true });
 document.addEventListener("pointercancel", onpointercancel, { capture: true });
 document.addEventListener("pointermove", onpointermove, { capture: true });
+setInterval(() => {
+    document.querySelectorAll(".data-autosave_handler").forEach(node => {
+        (node as any).__autosave_handler?.();
+    });
+}, 1000);
 
 drawpage();
 
