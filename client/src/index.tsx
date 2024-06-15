@@ -4,9 +4,6 @@ import { getStroke } from "perfect-freehand";
 // two frames maybe
 
 type Palette = string[];
-// prompt person gets to choose the palette
-// - might be a fun game to draw something and then other people change
-//   the colors to make it crazy different. wonder if that's possible though.
 const palettes: Palette[] = [
     ["#776D5A", "#987D7C", "#A09CB0", "#A3B9C9", "#ABDAE1"],
     ["#CFD4C5", "#EECFD4", "#EFB9CB", "#E6ADEC", "#C287E8"],
