@@ -197,7 +197,18 @@ function drawpage() {
 
         return srlzres;
     }
+    // it seems to be a firefox-only bug
+    // drawing with two fingers (if you set touch-action to none)
+    // is only updating one and then the other. despite there being two
+    // capture listeners? the second one should handle the pointer id we
+    // want?
+    // and when you pinch in to zoom it's sending cancels but we're missing
+    // one
+    mysvg.style.touchAction = "pinch-zoom";
     mysvg.addEventListener("pointerdown", (e: PointerEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
         const ptrid = e.pointerId;
         const stroke_color = cfg.value.color;
         const line_width = cfg.value.line_width;
@@ -223,7 +234,7 @@ function drawpage() {
         const addpoint = (e: PointerEvent) => {
             const svgelsz = mysvg.getBoundingClientRect();
             const pt: Vec2 = [e.clientX - svgelsz.x, e.clientY - svgelsz.y];
-            perfectPoints.push([...pt, e.pressure]);
+            perfectPoints.push([...pt, e.pressure ?? undefined]);
 
             updaterender([svgelsz.width, svgelsz.height]);
         };
