@@ -34,22 +34,34 @@ function addColorButton(parent: HTMLDivElement, color: string, cfg: Signal<Cfg>)
     }
     onupdateAndNow(cfg, () => {
         if(cfg.value.color === color) {
-            newel.style.borderColor = "black";
+            btnel.style.borderColor = "white";
+            btnel.style.outline = "2px solid red";
         }else{
-            newel.style.borderColor = "gray";
+            btnel.style.borderColor = "gray";
+            btnel.style.outline = "";
         }
     });
     parent.appendChild(newel);
 }
 function addLinewidthButton(parent: HTMLDivElement, lw: number, cfg: Signal<Cfg>) {
+    const lwv = lw * 20;
     const newel = document.createElement("div");
     newel.style.display = "contents";
     newel.innerHTML = `<button id="btnel" style="border:2px solid gray;width:2rem;aspect-ratio:1 / 1;border-radius:9999px;background-color:white;">${""+lw}</button>`;
     const btnel: HTMLButtonElement = newel.querySelector("#btnel")!;
     btnel.onclick = () => {
-        cfg.value.line_width = lw * 20;
+        cfg.value.line_width = lwv;
         cfg.update();
     }
+    onupdateAndNow(cfg, () => {
+        if(cfg.value.line_width === lwv) {
+            btnel.style.borderColor = "white";
+            btnel.style.outline = "2px solid red";
+        }else{
+            btnel.style.borderColor = "gray";
+            btnel.style.outline = "";
+        }
+    });
     parent.appendChild(newel);
 }
 function addOtherButton(parent: HTMLDivElement, label: string, cb: () => void) {
