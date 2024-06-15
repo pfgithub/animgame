@@ -3,6 +3,11 @@ import { getStroke } from "perfect-freehand";
 // should we have each person make one frame or two frames?
 // two frames maybe
 
+// if we want to skip a server, we can try webrtc?
+// one client is the server & if they lose connection then
+// they have to refresh and everyone else has to refresh
+// but no data loss!important
+
 type Palette = string[];
 const palettes: Palette[] = [
     ["#776D5A", "#987D7C", "#A09CB0", "#A3B9C9", "#ABDAE1"],
