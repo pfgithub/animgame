@@ -90,10 +90,20 @@ function onupdateAndNow<T>(signal: Signal<T>, cb: () => void) {
     };
     cb();
 }
+type StrokeSrlz = {
+    points: Vec2[],
+    color_index: number,
+};
+type ImgSrlz = {
+    undo_strokes: StrokeSrlz[],
+    redo_strokes: StrokeSrlz[],
+};
 function drawpage() {
     // TODO: save in local storage in case you reload
     // TODO: we're going to load arbitrary lines so make sure we can
     //           render arbitrary lines safely
+    //
+    // : we can call srlz() on an interval for localstorage
 
     let cfg = signal<Cfg>({
         palette: palettes[6]!,
@@ -162,21 +172,45 @@ function drawpage() {
     });
     addOtherButton(mybuttons, "submit", () => {
         if(!confirm("Really submit your drawing?")) return;
+        const srlzres = srlz();
+        console.log(srlzres);
     });
+    const srlz = () => {
+        const srlzres: ImgSrlz = {
+            undo_strokes: [],
+            redo_strokes: [],
+        };
+        const as = (a: StrokeSrlz[], b: SVGPathElement[]) => {
+            for(const stroke of b) {
+                const data = ((stroke as any).__data_rsrlz as StrokeSrlz | undefined);
+                if(!data) continue;
+                a.push(data);
+            }
+        };
+        as(srlzres.undo_strokes, linesv);
+        as(srlzres.redo_strokes, linesr);
+
+        return srlzres;
+    }
     mysvg.addEventListener("pointerdown", (e: PointerEvent) => {
         const ptrid = e.pointerId;
         const stroke_color = cfg.value.color;
         const line_width = cfg.value.line_width;
         const renderv = document.createElementNS("http://www.w3.org/2000/svg", "path");
         mysvg.appendChild(renderv);
-        renderv.setAttribute("style", "fill:"+stroke_color);
+        renderv.setAttribute("fill", stroke_color);
 
         const updaterender = (size: Vec2) => {
             let stroke: Vec2[] = getStroke(perfectPoints, {
                 size: size[0] / 1000 * line_width,
                 thinning: (80 - line_width) / 160,
             }) as Vec2[];
-            stroke = stroke.map((pt): Vec2 => [pt[0] / size[0] * IMGW, pt[1] / size[1] * IMGH])
+            stroke = stroke.map((pt): Vec2 => [pt[0] / size[0] * IMGW, pt[1] / size[1] * IMGH]);
+            const strokev: StrokeSrlz = {
+                points: stroke,
+                color_index: cfg.value.palette.indexOf(stroke_color),
+            };
+            (renderv as any).__data_rsrlz = strokev;
             renderv.setAttribute("d", getSvgPathFromStroke(stroke));
         };
 
