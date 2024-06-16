@@ -185,6 +185,8 @@ function handleMessage(msg: BroadcastMsg) {
 
     if(msg.kind === "choose_palettes_and_ready") {
         choosepalettesandready();
+    }else if(msg.kind === "show_prompt_sel") {
+        showpromptsel();
     }
     console.log(msg);
 }
@@ -257,6 +259,14 @@ function choosepalettesandready() {
         ready_sending = true;
         updateReadyBtn();
     });
+}
+function showpromptsel() {
+    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+        <div style="display:flex;flex-direction:column;gap:1rem">
+            <div>ShowPromptSel</div>
+            <form action="javascript:;></form>
+        </div>
+    </div></div>`;
 }
 function drawpage() {
     // TODO: save in local storage in case you reload
