@@ -10,6 +10,7 @@ export class MsgError extends Error {
 // long we want the game to go
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 12;
+const NUM_PALETTES = 8;
 
 type GamePlayer = {
     id: PlayerID,
@@ -26,6 +27,7 @@ type GameStateEnum = (
 );
 
 type Frame = {
+    artist: PlayerID,
     value: string,
 };
 type FrameSet = {
@@ -33,7 +35,11 @@ type FrameSet = {
     images: Frame[],
 };
 type GameState = {
+    config: {
+        frame_count: number,
+    },
     state: GameStateEnum,
+    draw_frame_num?: number,
     players: GamePlayer[],
     frames: FrameSet[],
 };
@@ -47,6 +53,9 @@ export function createGame(): string {
     if(game_id_map.has(gamestr)) throw new Error("CANNOTCREATEGAME");
     if(games.has(gameid)) throw new Error("UUID COLLISION");
     games.set(gameid, {
+        config: {
+            frame_count: 2,
+        },
         state: "ALLOW_JOINING",
         players: [],
         frames: [],
@@ -77,6 +86,7 @@ export function choosePalette(gameid: GameID, playerid: string, palette: number)
     const game = games.get(gameid);
     if(game == null) throw new MsgError("Game not found");
     if(game.state !== "ALLOW_JOINING") throw new MsgError("You cannot change your palette at this time");
+    if((palette |0) !== palette || palette < 0 || palette >= NUM_PALETTES) throw new MsgError("Palette out of range");
     let pl: GamePlayer | null = null;
     for(const player of game.players) {
         if(player.id === playerid) pl = player;
@@ -85,18 +95,141 @@ export function choosePalette(gameid: GameID, playerid: string, palette: number)
     if(pl == null) throw new MsgError("You are not in the game");
     pl.selected_palette = palette;
 }
-export function markReady(gameid: GameID, playerid: string) {
+export function markReady(gameid: GameID, playerid: string, value: boolean) {
     const game = games.get(gameid);
     if(game == null) throw new MsgError("Game not found");
     if(game.state !== "ALLOW_JOINING") throw new MsgError("You cannot mark ready at this time");
     const pl = game.players.find(pl => pl.id === playerid);
     if(pl == null) throw new MsgError("You are not in the game");
-    pl.ready = true;
+    pl.ready = value;
 
-    if(game.players.every(pl => pl.ready)) {
+    if(game.players.length >= MIN_PLAYERS && game.players.every(pl => pl.ready)) {
         // start the game
-        throw new MsgError("TODO: start the game.");
+        startGame(gameid, game);
     }
+}
+function startGame(gameid: GameID, game: GameState) {
+    game.state = "CHOOSE_PROMPTS";
+    const used_palettes = new Set<number>();
+    for(const player of game.players) {
+        if(player.selected_palette != null) {
+            used_palettes.add(player.selected_palette);
+        }
+    }
+    for(const player of game.players) {
+        // pick a random palette for any indecisive ppl
+        if(player.selected_palette == null) {
+            // try 10 times, allow duplication if it fails.
+            for(let i = 0; i < 10; i++) {
+                const pval = (Math.random() * NUM_PALETTES) |0;
+                player.selected_palette = pval;
+                if(!used_palettes.has(pval)) break;
+            }
+        }
+    }
+    game.frames = new Array(game.players.length).fill(0).map((): FrameSet => {
+        return {images: []};
+    });
+
+    broadcast(gameid, {kind: "show_prompt_sel"});
+}
+export function postPrompt(gameid: GameID, playerid: PlayerID, prompt: string) {
+    const game = games.get(gameid);
+    if(game == null) throw new MsgError("Game not found");
+    if(game.state !== "CHOOSE_PROMPTS") throw new MsgError("You cannot choose a prompt at this time.");
+    const playerindex = game.players.findIndex(p => p.id == playerid);
+    if(playerindex === -1) throw new MsgError("Player not found");
+    const frameindex = modframes(game, playerindex);
+    game.frames[frameindex].prompt = prompt;
+    if(game.frames.every(frame => frame.prompt != null)) {
+        startDrawRound(gameid, game, 1);
+    }
+}
+function startDrawRound(gameid: GameID, game: GameState, num: number) {
+    if(num > game.players.length - 1) {
+        startReview(gameid, game);
+        return;
+    }
+    game.state = "DRAW_FRAME";
+    game.draw_frame_num = num;
+    broadcast(gameid, {kind: "show_draw_frame"});
+}
+function startReview(gameid: GameID, game: GameState) {
+    game.state = "REVIEW";
+    broadcast(gameid, {kind: "show_review"});
+}
+type ContextFrames = {
+    prompt?: string,
+    frames: Frame[],
+};
+export function getContextFrames(gameid: GameID, playerid: PlayerID, frames: string[]): ContextFrames {
+    const game = games.get(gameid);
+    if(game == null) throw new MsgError("Game not found");
+    if(game.state !== "DRAW_FRAME") throw new MsgError("You cannot choose a prompt at this time.");
+    if(frames.length !== game.config.frame_count) throw new MsgError("The wrong number of frames were submitted.");
+    const playerindex = game.players.findIndex(p => p.id == playerid);
+    if(playerindex === -1) throw new MsgError("Player not found");
+    const frameindex = modframes(game, playerindex);
+    const fset = game.frames[frameindex];
+    if(fset.images.length !== ((game.draw_frame_num ?? 0) - 1) * game.config.frame_count) {
+        throw new MsgError("Frames were already submitted");
+    }
+    const resframes = fset.images.slice(fset.images.length - game.config.frame_count);
+    if(resframes.length === 0) return {
+        prompt: fset.prompt,
+        frames: [],
+    };
+    return {frames: resframes};
+}
+export function postFrames(gameid: GameID, playerid: PlayerID, frames: string[]) {
+    const game = games.get(gameid);
+    if(game == null) throw new MsgError("Game not found");
+    if(game.state !== "DRAW_FRAME") throw new MsgError("You cannot choose a prompt at this time.");
+    if(frames.length !== game.config.frame_count) throw new MsgError("The wrong number of frames were submitted.");
+    const playerindex = game.players.findIndex(p => p.id == playerid);
+    if(playerindex === -1) throw new MsgError("Player not found");
+    const frameindex = modframes(game, playerindex);
+    const fset = game.frames[frameindex];
+    const target_frame_count = (game.draw_frame_num ?? 0) * game.config.frame_count;
+    if(fset.images.length !== target_frame_count - game.config.frame_count) {
+        throw new MsgError("Frames were already submitted");
+    }
+    for(const frame of frames) {
+        fset.images.push({
+            artist: playerid,
+            value: frame,
+        });
+    }
+    if(fset.images.length !== target_frame_count) {
+        throw new Error("Assertion failure");
+    }
+    if(game.frames.every(frame => frame.images.length === target_frame_count)) {
+        startDrawRound(gameid, game, game.draw_frame_num! + 1);
+    }
+}
+
+
+function modframes(game: GameState, playerindex: number): number {
+    return (playerindex + (game.draw_frame_num ?? 0)) % game.frames.length;
+}
+
+// if we implement this genericly, we can literally just tell the client
+// "show this scene for this amount of time" and have all logic on the
+// server. like the server asks the client "draw a frame" and the client
+// returns it.
+// so we would dispatch "show:DrawFrame" (count: ..., prompt: ..., context: ...)
+// and then the client would dispatch "complete:DrawFrame" (...)
+// or if the timer is up, we dispatch "DrawFrame:completeNow"
+// that shouldn't be too big a difference from what we have so far
+type BroadcastMsg = {
+    kind: "show_prompt_sel",
+} | {
+    kind: "show_draw_frame",
+} | {
+    kind: "show_review",
+};
+export function broadcast(gameid: GameID, msg: BroadcastMsg) {
+
 }
 
 type GameID = string & {__is_game_id: true};
@@ -112,3 +245,6 @@ type PlayerID = string & {__is_player_id: true};
 // the next player gets those two frames and draws too more
 //   etc etc
 // at the end, we review all the animations
+
+// if we didn't have palettes, we could have you guess
+// out of the last frames which one is yours
