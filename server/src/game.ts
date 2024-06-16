@@ -1,4 +1,4 @@
-import {type BroadcastMsg, type ContextFrames, type Frame, type GameID, type PlayerID} from "../../shared/shared.ts";
+import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type GameID, type PlayerID} from "../../shared/shared.ts";
 
 export class MsgError extends Error {
     constructor(msg: string) {
@@ -12,7 +12,6 @@ export class MsgError extends Error {
 // long we want the game to go
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 12;
-const NUM_PALETTES = 8;
 
 type GamePlayer = {
     id: PlayerID,
@@ -102,7 +101,7 @@ export function choosePalette(gameid: GameID, playerid: PlayerID, palette: numbe
     const game = games.get(gameid);
     if(game == null) throw new MsgError("Game not found");
     if(game.state !== "ALLOW_JOINING") throw new MsgError("You cannot change your palette at this time");
-    if((palette |0) !== palette || palette < 0 || palette >= NUM_PALETTES) throw new MsgError("Palette out of range");
+    if((palette |0) !== palette || palette < 0 || palette >= palettes.length) throw new MsgError("Palette out of range");
     let pl: GamePlayer | null = null;
     for(const player of game.players) {
         if(player.id === playerid) pl = player;
@@ -139,7 +138,7 @@ function startGame(send: SendCB, gameid: GameID, game: GameState) {
         if(player.selected_palette == null) {
             // try 10 times, allow duplication if it fails.
             for(let i = 0; i < 10; i++) {
-                const pval = (Math.random() * NUM_PALETTES) |0;
+                const pval = (Math.random() * palettes.length) |0;
                 player.selected_palette = pval;
                 if(!used_palettes.has(pval)) break;
             }
