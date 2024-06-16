@@ -1,4 +1,6 @@
 import { join, resolve } from "path";
+import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady } from "./game";
+import type { BroadcastMsg, GameID, PlayerID, RecieveMessage } from "../../shared/shared";
 
 // consider hono so we can run on cloudflare pages?
 
@@ -28,10 +30,69 @@ async function serveFromDir(config: ServeDirCfg) {
     return null;
 }
 
-const server = Bun.serve({
+type WebsocketData = {
+    game_id: GameID,
+    player_id: PlayerID,
+};
+
+function send(channel: GameID | PlayerID, message: BroadcastMsg): void {
+    server.publish(channel, JSON.stringify(message));
+}
+const server = Bun.serve<WebsocketData>({
     port: 2390,
+    websocket: {
+        maxPayloadLength: 1024 * 1024 * 32, // 32MB
+        message(ws, message) {
+            if(typeof message !== "string") throw new MsgError("Message was not a string");
+            const msg_val = JSON.parse(message) as RecieveMessage;
+            if(msg_val.kind === "mark_ready") {
+                markReady(send, ws.data.game_id, ws.data.player_id, msg_val.value);
+            }
+        },
+        open(ws) {
+            ws.subscribe(ws.data.game_id);
+            ws.subscribe(ws.data.player_id);
+            console.log("connect: "+ws.data.player_id);
+            catchupPlayer(send, ws.data.game_id, ws.data.player_id);
+        },
+        close(ws, code, reason) {
+            ws.unsubscribe(ws.data.game_id);
+            ws.unsubscribe(ws.data.player_id);
+            console.log("disconnect: "+ws.data.player_id+": `"+reason+"` ("+code+")");
+            onPlayerDisconnected(ws.data.game_id, ws.data.player_id);
+        },
+        drain(ws) {
+            // client is ready for more data
+        },
+    },
     async fetch(request) {
         const { pathname, searchParams } = new URL(request.url);
+
+        if(pathname === "/websocket") {
+            const codeparam = searchParams.get("code")?.toUpperCase();
+            const nameparam = searchParams.get("name");
+            if(codeparam == null || nameparam == null) {
+                return new Response("Missing codeparam | nameparam", {status: 404});
+            }
+
+            const game_id = lookupGame(codeparam);
+            if(game_id == null) return new Response("Game not found", {status: 400});
+
+            const player_id = joinGame(game_id, nameparam);
+
+            if(!server.upgrade(request, {
+                data: {
+                    game_id,
+                    player_id,
+                } satisfies WebsocketData,
+            })) {
+                onPlayerDisconnected(game_id, player_id);
+                return new Response("Upgrade failed", {status: 400});
+            }
+
+            return; // upgraded
+        }
+
         if(pathname == "/index.tsx") {
             const buildres = await Bun.build({
                 entrypoints: ["../client/src/index.tsx"],
@@ -42,10 +103,6 @@ const server = Bun.serve({
             }
             const result = buildres.outputs[0];
             return new Response(result, {headers: {'Content-Type': "text/javascript"}});
-        }
-        const codeparam = searchParams.get("code")?.toUpperCase();
-        if(codeparam != null && codeparam != "ABCD") {
-            return new Response("game not found", {status: 404});
         }
         console.log("request: "+pathname);
         const staticResponse = await serveFromDir({

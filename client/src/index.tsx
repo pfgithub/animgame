@@ -1,4 +1,5 @@
 import { getStroke } from "perfect-freehand";
+import {type BroadcastMsg, type RecieveMessage} from "../../shared/shared.ts";
 
 // should we have each person make one frame or two frames?
 // two frames maybe
@@ -11,13 +12,13 @@ import { getStroke } from "perfect-freehand";
 type Palette = string[];
 const palettes: Palette[] = [
     ["#776D5A", "#987D7C", "#A09CB0", "#A3B9C9", "#ABDAE1"],
-    ["#CFD4C5", "#EECFD4", "#EFB9CB", "#E6ADEC", "#C287E8"],
+    ["#C287E8", "#E6ADEC", "#EFB9CB", "#EECFD4", "#CFD4C5"],
     ["#1C1C1C", "#DADDD8", "#ECEBE4", "#EEF0F2", "#FAFAFF"],
-    ["#BDC667", "#77966D", "#626D58", "#544343", "#56282D"],
-    ["#2DE1FC", "#2AFC98", "#09E85E", "#16C172", "#214F4B"],
-    ["#FE5D26", "#F2C078", "#FAEDCA", "#C1DBB3", "#7EBC89"],
+    ["#56282D", "#544343", "#626D58", "#77966D", "#BDC667"],
+    ["#214F4B", "#16C172", "#09E85E", "#2AFC98", "#2DE1FC"],
+    ["#FE5D26", "#F2C078", "#C1DBB3", "#7EBC89", "#FAEDCA"],
     ["#353535", "#3C6E71", "#284B63", "#D9D9D9", "#FFFFFF"],
-    ["#686868", "#C2AFF0", "#9191E9", "#457EAC", "#2D5D7B"],
+    ["#686868", "#2D5D7B", "#457EAC", "#9191E9", "#C2AFF0"],
 ];
 
 type Vec2 = [number, number];
@@ -110,10 +111,17 @@ function autosaveHandler(cb: () => void): HTMLDivElement {
     (el as any).__autosave_handler = cb;
     return el;
 }
+function wsEventHandler(cb: (ev: BroadcastMsg) => void): HTMLDivElement {
+    const el = document.createElement("div");
+    el.setAttribute("class", "data-wsevent_handler");
+    (el as any).__wsevent_handler = cb;
+    return el;
+}
 function entergamecode() {
+    // TODO autofill these with the previous values
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
-            <form action="">
+            <form id="myform" action="javascript:;">
                 <label>
                     <div>Name</div>
                     <div style="display:flex;flex-wrap:wrap;flex-direction:row">
@@ -130,6 +138,125 @@ function entergamecode() {
             </form>
         </div>
     </div></div>`;
+    const formel: HTMLFormElement = rootel.querySelector("#myform")!;
+    formel.addEventListener("submit", e => {
+        e.preventDefault();
+        const data = new FormData(e.target as any);
+        const name = data.get("name") as string;
+        const code = (data.get("code") as string).toUpperCase();
+        console.log(name, code);
+
+        waitpage();
+        connect(name, code);
+    });
+}
+function connect(name: string, code: string): void {
+    const wsurl = new URL(location.href);
+    wsurl.pathname = "/websocket";
+    wsurl.search = "?name="+encodeURIComponent(name)+"&code="+encodeURIComponent(code);
+    const wss = new WebSocket(wsurl);
+    wss.addEventListener("open", e => {
+        console.log("open", e);
+        // connected; waiting for commands
+    });
+    wss.addEventListener("error", e => {
+        console.log("error", e);
+        alert("websocket error. refresh.");
+    });
+    wss.addEventListener("close", e => {
+        console.log("close", e);
+        alert("websocket closed. refresh.");
+    });
+    wss.addEventListener("message", e => {
+        const msg_data = e.data;
+        if(typeof msg_data === "string") {
+            const desrlz = JSON.parse(msg_data);
+            handleMessage(desrlz);
+        }
+    });
+    sendMessage = msg => {
+        wss.send(JSON.stringify(msg));
+    };
+}
+function handleMessage(msg: BroadcastMsg) {
+    document.querySelectorAll(".data-wsevent_handler").forEach(node => {
+        (node as any).__wsevent_handler?.(msg);
+    });
+
+    if(msg.kind === "choose_palettes_and_ready") {
+        choosepalettesandready();
+    }
+    console.log(msg);
+}
+let sendMessage = (msg: RecieveMessage) => {};
+function waitpage() {
+    rootel.innerHTML = ``;
+}
+function choosepalettesandready() {
+    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+        <div style="display:flex;flex-direction:column;gap:1rem">
+            <div>ChoosePalettesAndReady</div>
+            <div id="palettes" style="display:flex;flex-direction:column;gap:0.25rem"></div>
+            <button id="readybtn" style="border-radius:1rem;border:2px solid black;padding:0.5rem 1rem;font-size:1rem"></button>
+        </div>
+    </div></div>`;
+    const rootitm: HTMLDivElement = rootel.querySelector("#rootitm")!;
+    const palettesel: HTMLDivElement = rootel.querySelector("#palettes")!;
+    const readybtn: HTMLButtonElement = rootel.querySelector("#readybtn")!;
+    for(const palette of palettes) {
+        const palettebtn = document.createElement("button");
+        palettebtn.setAttribute("style", "border-radius:1rem;display:flex;width:100%;border:none;background-color:transparent;padding:0");
+        palettebtn.innerHTML = `
+            <div style="flex:1;display:flex;border:2px solid gray">
+                <div class="_here" style="border:2px solid white;flex:1;display:flex"></div>
+            </div>
+        `;
+        const pbin: HTMLDivElement = palettebtn.querySelector("._here")!;
+        for(let i = 0; i < palette.length; i++) {
+            const colorprev = palette[i - 1] ?? "transparent";
+            const color = palette[i];
+            {
+                const palettesquare = document.createElement("div");
+                palettesquare.setAttribute("style", "height:3rem;flex:1;background-color:"+colorprev);
+                palettesquare.innerHTML = `<div style="width:100%;height:100%;background-color:${color};border-radius:1rem 0 0 1rem"></div>`;
+                pbin.appendChild(palettesquare);
+            }
+            {
+                const palettesquare = document.createElement("div");
+                palettesquare.setAttribute("style", "height:3rem;flex:1;background-color:"+color+";"+(i === palette.length - 1 ? "border-radius:0 1rem 1rem 0" : ""));
+                pbin.appendChild(palettesquare);
+            }
+        }
+        palettesel.appendChild(palettebtn);
+    }
+    let ready_state = false;
+    let ready_sending = false;
+    const updateReadyBtn = () => {
+        if(ready_state) {
+            readybtn.textContent = "✓ Ready";
+            readybtn.style.backgroundColor = "green";
+            readybtn.style.color = "white";
+        }else{
+            readybtn.textContent = "Ready";
+            readybtn.style.backgroundColor = "white";
+            readybtn.style.color = "black";
+        }
+        readybtn.disabled = ready_sending;
+    }
+    updateReadyBtn();
+    rootitm.appendChild(wsEventHandler(ev => {
+        console.log("got wsev", ev);
+        if(ev.kind === "ready_ack") {
+            ready_state = ev.value;
+            ready_sending = false;
+            updateReadyBtn();
+        }
+    }));
+    readybtn.addEventListener("click", () => {
+        sendMessage({kind: "mark_ready", value: !ready_state});
+        ready_sending = true;
+        updateReadyBtn();
+    });
 }
 function drawpage() {
     // TODO: save in local storage in case you reload
@@ -151,7 +278,7 @@ function drawpage() {
 
     rootel.innerHTML = `<div id="rootitm" style="width:max(20rem,min(100vw, calc(100vh - 10rem)));margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
-            <div id="buttonshere2" style="display:flex;flex-direction:row;flex-wrap:wrap;;gap:0.5rem">
+            <div id="buttonshere2" style="display:flex;flex-direction:row;flex-wrap:wrap;gap:0.5rem">
             </div>
             <div><div style="border: 4px solid gray;display:block">
                 <svg style="display:block;aspect-ratio:1 / 1;width:100%" id="mysvg" viewbox="0 0 ${IMGW} ${IMGH}"></svg>
