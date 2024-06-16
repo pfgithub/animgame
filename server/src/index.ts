@@ -31,7 +31,7 @@ async function serveFromDir(config: ServeDirCfg) {
 const server = Bun.serve({
     port: 2390,
     async fetch(request) {
-        const { pathname } = new URL(request.url);
+        const { pathname, searchParams } = new URL(request.url);
         if(pathname == "/index.tsx") {
             const buildres = await Bun.build({
                 entrypoints: ["../client/src/index.tsx"],
@@ -42,6 +42,10 @@ const server = Bun.serve({
             }
             const result = buildres.outputs[0];
             return new Response(result, {headers: {'Content-Type': "text/javascript"}});
+        }
+        const codeparam = searchParams.get("code")?.toUpperCase();
+        if(codeparam != null && codeparam != "ABCD") {
+            return new Response("game not found", {status: 404});
         }
         console.log("request: "+pathname);
         const staticResponse = await serveFromDir({

@@ -110,6 +110,21 @@ function autosaveHandler(cb: () => void): HTMLDivElement {
     (el as any).__autosave_handler = cb;
     return el;
 }
+function entergamecode() {
+    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+        <div style="display:flex;flex-direction:column;gap:1rem">
+            <form action="">
+                <label>
+                    <div>Game code</div>
+                    <div style="display:flex;flex-wrap:wrap;flex-direction:row">
+                        <div style="flex:1"><input autocomplete="off" type="text" name="code" style="font-size:3rem;width:100%;text-transform:uppercase" /></div>
+                        <button style="padding:0 1rem">Join</button>
+                    </div>
+                </label>
+            </form>
+        </div>
+    </div></div>`;
+}
 function drawpage() {
     // TODO: save in local storage in case you reload
     // TODO: we're going to load arbitrary lines so make sure we can
@@ -323,7 +338,8 @@ setInterval(() => {
     });
 }, 1000);
 
-drawpage();
+// drawpage();
+entergamecode();
 
 
 function getSvgPathFromStroke(points: Vec2[], closed = true) {
