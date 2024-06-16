@@ -159,6 +159,7 @@ export function postPrompt(send: SendCB, gameid: GameID, playerid: PlayerID, pro
     if(playerindex === -1) throw new MsgError("Player not found");
     const frameindex = modframes(game, playerindex);
     game.frames[frameindex].prompt = prompt;
+    send(playerid, {kind: "show_prompt_accepted", prompt});
     if(game.frames.every(frame => frame.prompt != null)) {
         startDrawRound(send, gameid, game, 1);
     }
@@ -190,11 +191,12 @@ export function getContextFrames(gameid: GameID, playerid: PlayerID): ContextFra
         throw new MsgError("Frames were already submitted");
     }
     const resframes = fset.images.slice(fset.images.length - game.config.frame_count);
-    if(resframes.length === 0) return {
-        prompt: fset.prompt,
-        frames: [],
+    return {
+        start_frame_index: fset.images.length - resframes.length,
+        prompt: resframes.length === 0 ? fset.prompt : undefined,
+        frames: resframes,
+        ask_for_frames: game.config.frame_count,
     };
-    return {frames: resframes};
 }
 export function postFrames(send: SendCB, gameid: GameID, playerid: PlayerID, frames: string[]) {
     const game = games.get(gameid);

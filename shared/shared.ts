@@ -8,11 +8,16 @@ export type Frame = {
 export type ContextFrames = {
     prompt?: string,
     frames: Frame[],
+    start_frame_index: number,
+    ask_for_frames: number,
 };
 export type BroadcastMsg = {
     kind: "choose_palettes_and_ready",
 } | {
     kind: "show_prompt_sel",
+} | {
+    kind: "show_prompt_accepted",
+    prompt: string,
 } | {
     kind: "show_draw_frame",
     context: ContextFrames,
@@ -25,4 +30,7 @@ export type BroadcastMsg = {
 export type RecieveMessage = {
     kind: "mark_ready",
     value: boolean,
+} | {
+    kind: "submit_prompt",
+    prompt: string,
 };

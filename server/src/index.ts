@@ -1,5 +1,5 @@
 import { join, resolve } from "path";
-import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady } from "./game";
+import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady, postPrompt } from "./game";
 import type { BroadcastMsg, GameID, PlayerID, RecieveMessage } from "../../shared/shared";
 
 // consider hono so we can run on cloudflare pages?
@@ -47,6 +47,8 @@ const server = Bun.serve<WebsocketData>({
             const msg_val = JSON.parse(message) as RecieveMessage;
             if(msg_val.kind === "mark_ready") {
                 markReady(send, ws.data.game_id, ws.data.player_id, msg_val.value);
+            }else if(msg_val.kind === "submit_prompt") {
+                postPrompt(send, ws.data.game_id, ws.data.player_id, msg_val.prompt);
             }
         },
         open(ws) {

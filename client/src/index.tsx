@@ -1,5 +1,5 @@
 import { getStroke } from "perfect-freehand";
-import {type BroadcastMsg, type RecieveMessage} from "../../shared/shared.ts";
+import {type BroadcastMsg, type ContextFrames, type RecieveMessage} from "../../shared/shared.ts";
 
 // should we have each person make one frame or two frames?
 // two frames maybe
@@ -187,12 +187,18 @@ function handleMessage(msg: BroadcastMsg) {
         choosepalettesandready();
     }else if(msg.kind === "show_prompt_sel") {
         showpromptsel();
+    }else if(msg.kind === "show_prompt_accepted") {
+        showpromptaccepted(msg.prompt);
+    }else if(msg.kind === "show_draw_frame") {
+        drawpage(msg.context);
     }
     console.log(msg);
 }
-let sendMessage = (msg: RecieveMessage) => {};
+let sendMessage = (msg: RecieveMessage) => {
+    alert("Not connected");
+};
 function waitpage() {
-    rootel.innerHTML = ``;
+    rootel.innerHTML = `wait...`;
 }
 function choosepalettesandready() {
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
@@ -264,11 +270,34 @@ function showpromptsel() {
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
             <div>ShowPromptSel</div>
-            <form action="javascript:;></form>
+            <form action="javascript:;">
+                <div>Provide a prompt for other people to animate</div>
+                <label>
+                    <div style="display:flex;flex-wrap:wrap;flex-direction:row">
+                        <div style="flex:1"><input required type="text" name="prompt" style="font-size:2rem;width:100%" /></div>
+                    </div>
+                </label>
+                <button>Submit</button>
+            </form>
+        </div>
+    </div></div>`;
+    const formel = rootel.querySelector("form")!;
+    formel.addEventListener("submit", e => {
+        e.preventDefault();
+        const data = new FormData(e.target as any);
+
+        sendMessage({kind: "submit_prompt", prompt: data.get("prompt")! as string});
+        waitpage();
+    });
+}
+function showpromptaccepted(prompt: string) {
+    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+        <div style="display:flex;flex-direction:column;gap:1rem">
+            <div>ShowPromptAccepted</div>
         </div>
     </div></div>`;
 }
-function drawpage() {
+function drawpage(context: ContextFrames) {
     // TODO: save in local storage in case you reload
     // TODO: we're going to load arbitrary lines so make sure we can
     //           render arbitrary lines safely
@@ -288,15 +317,43 @@ function drawpage() {
 
     rootel.innerHTML = `<div id="rootitm" style="width:max(20rem,min(100vw, calc(100vh - 10rem)));margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
+            <div id="promptwrapper">
+                Draw:
+                <h2 id="prompthere" style="margin:0"></h2>
+            </div>
             <div id="buttonshere2" style="display:flex;flex-direction:row;flex-wrap:wrap;gap:0.5rem">
             </div>
-            <div><div style="border: 4px solid gray;display:block">
-                <svg style="display:block;aspect-ratio:1 / 1;width:100%" id="mysvg" viewbox="0 0 ${IMGW} ${IMGH}"></svg>
-            </div></div>
+            <div>
+                <div id="frametabs" style="display:flex"></div>
+                <div style="border: 4px solid gray;display:block">
+                    <svg style="display:block;aspect-ratio:1 / 1;width:100%" id="mysvg" viewbox="0 0 ${IMGW} ${IMGH}"></svg>
+                </div>
+            </div>
             <div id="buttonshere" style="display:flex;flex-wrap:wrap;flex-direction:row;gap:0.5rem">
             </div>
         </div>
     </div></div>`;
+    const promptwrapper: HTMLDivElement = rootel.querySelector("#promptwrapper")!;
+    if(context.prompt != null) {
+        const prompthere: HTMLDivElement = rootel.querySelector("#prompthere")!;
+        prompthere.textContent = context.prompt;
+    }else{
+        promptwrapper.remove();
+    }
+    const frametabs: HTMLDivElement = rootel.querySelector("#frametabs")!;
+    for(let i = 0; i < context.frames.length + context.ask_for_frames; i++) {
+        const tabv = document.createElement("button");
+        tabv.setAttribute("style", "flex:1;background-color:white;border:2px solid gray;border-radius: 8px 8px 0 0;border-bottom:none;padding:0.25rem 0.25rem");
+        tabv.textContent = "Frame "+(i + context.start_frame_index + 1);
+        frametabs.appendChild(tabv);
+    }
+    {
+        const playbtn = document.createElement("button");
+        playbtn.setAttribute("style", "background-color:white;border:2px solid gray;border-radius: 8px 8px 0 0;border-bottom:none;padding:0.25rem 0.75rem");
+        playbtn.textContent = "Play";
+        frametabs.appendChild(playbtn);
+    }
+
     const rootitm: HTMLDivElement = rootel.querySelector("#rootitm")!;
     rootitm.appendChild(autosaveHandler(() => {
         localStorage.setItem("animgame-saved-drawing", JSON.stringify(srlz()));
@@ -481,9 +538,6 @@ setInterval(() => {
     });
 }, 1000);
 
-// drawpage();
-entergamecode();
-
 
 function getSvgPathFromStroke(points: Vec2[], closed = true) {
     const len = points.length
@@ -518,3 +572,13 @@ function getSvgPathFromStroke(points: Vec2[], closed = true) {
     return result
 }
 const average = (a: number, b: number) => (a + b) / 2;
+
+entergamecode();
+if(location.hash === "#demo/drawpage") {
+    drawpage({
+        prompt: "The quick brown fox jumps over a lazy dog",
+        frames: [],
+        ask_for_frames: 2,
+        start_frame_index: 0,
+    });
+}
