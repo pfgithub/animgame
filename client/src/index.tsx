@@ -102,7 +102,7 @@ type StrokeSrlz = {
 };
 type ImgSrlz = {
     undo_strokes: StrokeSrlz[],
-    // redo_strokes: StrokeSrlz[],
+    redo_strokes: StrokeSrlz[],
     background_color_index: number,
 };
 function autosaveHandler(cb: () => void): HTMLDivElement {
@@ -410,7 +410,7 @@ function drawpage(context: ContextFrames) {
     const srlz = () => {
         const srlzres: ImgSrlz = {
             undo_strokes: [],
-            // redo_strokes: [],
+            redo_strokes: [],
             background_color_index: cfg.value.palette.indexOf(cfg.value.background),
         };
         const as = (a: StrokeSrlz[], b: SVGPathElement[]) => {
