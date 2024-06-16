@@ -115,9 +115,15 @@ function entergamecode() {
         <div style="display:flex;flex-direction:column;gap:1rem">
             <form action="">
                 <label>
+                    <div>Name</div>
+                    <div style="display:flex;flex-wrap:wrap;flex-direction:row">
+                        <div style="flex:1"><input required type="text" name="name" style="font-size:3rem;width:100%" /></div>
+                    </div>
+                </label>
+                <label>
                     <div>Game code</div>
                     <div style="display:flex;flex-wrap:wrap;flex-direction:row">
-                        <div style="flex:1"><input autocomplete="off" type="text" name="code" style="font-size:3rem;width:100%;text-transform:uppercase" /></div>
+                        <div style="flex:1"><input required autocomplete="off" type="text" name="code" style="font-size:3rem;width:100%;text-transform:uppercase" /></div>
                         <button style="padding:0 1rem">Join</button>
                     </div>
                 </label>
