@@ -101,7 +101,7 @@ type StrokeSrlz = {
 };
 type ImgSrlz = {
     undo_strokes: StrokeSrlz[],
-    redo_strokes: StrokeSrlz[],
+    // redo_strokes: StrokeSrlz[],
     background_color_index: number,
 };
 function autosaveHandler(cb: () => void): HTMLDivElement {
@@ -216,7 +216,7 @@ function drawpage() {
     const srlz = () => {
         const srlzres: ImgSrlz = {
             undo_strokes: [],
-            redo_strokes: [],
+            // redo_strokes: [],
             background_color_index: cfg.value.palette.indexOf(cfg.value.background),
         };
         const as = (a: StrokeSrlz[], b: SVGPathElement[]) => {
@@ -227,7 +227,7 @@ function drawpage() {
             }
         };
         as(srlzres.undo_strokes, linesv);
-        as(srlzres.redo_strokes, linesr);
+        // as(srlzres.redo_strokes, linesr);
 
         return srlzres;
     }
