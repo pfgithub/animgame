@@ -20,6 +20,7 @@ type Cfg = {
     frame: number,
     uncanned_frames: ImgSrlz[],
     onion_skinning: boolean,
+    playing: boolean,
 };
 
 type StrokeSrlz = {
@@ -49,8 +50,9 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         frame: context.frames.length,
         uncanned_frames: [],
         onion_skinning: true,
+        playing: false,
     });
-    const canned = () => cfg.value.frame < context.frames.length;
+    const readonly = () => cfg.value.frame < context.frames.length || cfg.value.playing;
     let linesv: SVGPathElement[] = [];
     let linesr: SVGPathElement[] = [];
     {
@@ -136,13 +138,12 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         cfg.update();
     }
     {
-        let playing = false;
         const playbtn = document.createElement("button");
         playbtn.setAttribute("style", "background-color:white;border:2px solid gray;border-radius: 8px 8px 0 0;border-bottom:none;padding:0.25rem 0.75rem;margin:2px 0.25rem 0 0.25rem");
         playbtn.textContent = "Play";
         playbtn.addEventListener("mousedown", async () => {
-            if(playing) return;
-            playing = true;
+            if(cfg.value.playing) return;
+            cfg.value.playing = true;
             const prev_os = cfg.value.onion_skinning;
             const prev_f = cfg.value.frame;
             cfg.value.onion_skinning = false;
@@ -152,7 +153,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
                 await new Promise(r => setTimeout(r, 200));
             }
 
-            playing = false;
+            cfg.value.playing = false;
             cfg.value.onion_skinning = prev_os;
             loadframe(prev_f);
         });
@@ -170,7 +171,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     });
     const topbuttons: HTMLDivElement = rootel.querySelector("#buttonshere2")!;
     const mybuttons: HTMLDivElement = rootel.querySelector("#buttonshere")!;
-    const dset = (d: (v: boolean) => void) => onupdateAndNow(cfg, () => d(canned()));
+    const dset = (d: (v: boolean) => void) => onupdateAndNow(cfg, () => d(readonly()));
     addLinewidthButton(topbuttons, 1, cfg, dset);
     addLinewidthButton(topbuttons, 2, cfg, dset);
     addLinewidthButton(topbuttons, 3, cfg, dset);
@@ -276,7 +277,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     // one
     mysvg.style.touchAction = "pinch-zoom";
     mysvg.addEventListener("pointerdown", (e: PointerEvent) => {
-        if(canned()) return;
+        if(readonly()) return;
         e.preventDefault();
         e.stopPropagation();
 
