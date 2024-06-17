@@ -12,3 +12,6 @@ TODO:
 - [ ] Keep in-progress drawings on reload
 - [ ] Keep in-progress text fields on reload
 - [ ] Display errors in a toast
+- [ ] Show wait status: (5/10) if there are 10 players and
+       5 have submitted. Show names of who has submitted and
+       who hasn't.

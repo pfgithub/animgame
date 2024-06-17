@@ -64,6 +64,18 @@ document.body.appendChild(wsEventHandler(handleMessage));
 function waitpage() {
     rootel.innerHTML = `wait...`;
 }
+function showguessprompt(image: string, prompts: string[]) {
+    // draw:
+    // - the image @ the top
+    // - Guess the prompt:
+    // - list of prompts in a style like the palette buttons
+}
+function showfullanimation(frames: string[]) {
+    // show:
+    // - the animation, looping
+    // - "Next" button that is like the "Ready" button, everyone
+    //   has to press it
+}
 function choosepalettesandready() {
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
