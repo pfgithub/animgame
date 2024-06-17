@@ -36,6 +36,7 @@ type FrameSet = {
 type GameState = {
     config: {
         frame_count: number,
+        draw_your_own_prompt: boolean,
     },
     state: GameStateEnum,
     draw_frame_num?: number,
@@ -55,6 +56,7 @@ export function createGame(): string {
     games.set(gameid, {
         config: {
             frame_count: 2,
+            draw_your_own_prompt: false,
         },
         state: "ALLOW_JOINING",
         players: [],
@@ -253,7 +255,7 @@ function assert(v: boolean): void {
 }
 
 function modframes(game: GameState, playerindex: number): number {
-    return (playerindex + (game.draw_frame_num ?? 0)) % game.frames.length;
+    return (playerindex + ((game.draw_frame_num ?? 0) -+ game.config.draw_your_own_prompt)) % game.frames.length;
 }
 
 export type Ctx = {
