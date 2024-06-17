@@ -44,7 +44,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     const rootel = document.createElement("div");
 
     let cfg = signal<Cfg>({
-        palette: palettes[6]!,
+        palette: palettes[context.palette]!,
         line_width: 20,
         color: "",
         background: "",

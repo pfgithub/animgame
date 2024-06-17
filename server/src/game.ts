@@ -191,6 +191,7 @@ export function getContextFrames(gameid: GameID, playerid: PlayerID): ContextFra
     }
     const resframes = fset.images.slice(fset.images.length - game.config.frame_count);
     return {
+        palette: game.players[frameindex].selected_palette!,
         start_frame_index: fset.images.length - resframes.length,
         prompt: resframes.length === 0 ? fset.prompt : undefined,
         frames: resframes,

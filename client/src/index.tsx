@@ -167,6 +167,7 @@ function showpromptaccepted(prompt: string) {
 entergamecode();
 if(location.hash === "#demo/drawpage") {
     replacepage(drawpage({
+        palette: 6,
         // prompt: "The quick brown fox jumps over a lazy dog",
         frames: [
             {

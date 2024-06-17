@@ -6,6 +6,7 @@ export type Frame = {
     value: string,
 };
 export type ContextFrames = {
+    palette: number,
     prompt?: string,
     frames: Frame[],
     start_frame_index: number,
