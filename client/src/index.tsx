@@ -1,4 +1,5 @@
 import {palettes, type BroadcastMsg, type RecieveMessage} from "../../shared/shared.ts";
+import { connect, sendMessage } from "./connection.tsx";
 import { drawpage } from "./drawpage.tsx";
 import { wsEventHandler } from "./util.tsx";
 
@@ -49,39 +50,7 @@ function entergamecode() {
         connect(name, code);
     });
 }
-function connect(name: string, code: string): void {
-    const wsurl = new URL(location.href);
-    wsurl.pathname = "/websocket";
-    wsurl.search = "?name="+encodeURIComponent(name)+"&code="+encodeURIComponent(code);
-    const wss = new WebSocket(wsurl);
-    wss.addEventListener("open", e => {
-        console.log("open", e);
-        // connected; waiting for commands
-    });
-    wss.addEventListener("error", e => {
-        console.log("error", e);
-        alert("websocket error. refresh.");
-    });
-    wss.addEventListener("close", e => {
-        console.log("close", e);
-        alert("websocket closed. refresh.");
-    });
-    wss.addEventListener("message", e => {
-        const msg_data = e.data;
-        if(typeof msg_data === "string") {
-            const desrlz = JSON.parse(msg_data);
-            handleMessage(desrlz);
-        }
-    });
-    sendMessage = msg => {
-        wss.send(JSON.stringify(msg));
-    };
-}
 function handleMessage(msg: BroadcastMsg) {
-    document.querySelectorAll(".data-wsevent_handler").forEach(node => {
-        (node as any).__wsevent_handler?.(msg);
-    });
-
     if(msg.kind === "choose_palettes_and_ready") {
         choosepalettesandready();
     }else if(msg.kind === "show_prompt_sel") {
@@ -93,9 +62,7 @@ function handleMessage(msg: BroadcastMsg) {
     }
     console.log(msg);
 }
-let sendMessage = (msg: RecieveMessage) => {
-    alert("Not connected");
-};
+document.body.appendChild(wsEventHandler(handleMessage));
 function waitpage() {
     rootel.innerHTML = `wait...`;
 }
@@ -212,6 +179,6 @@ if(location.hash === "#demo/drawpage") {
             }
         ],
         ask_for_frames: 2,
-        start_frame_index: 0,
+        start_frame_index: 4,
     }));
 }

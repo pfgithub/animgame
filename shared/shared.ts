@@ -33,6 +33,9 @@ export type RecieveMessage = {
 } | {
     kind: "submit_prompt",
     prompt: string,
+} | {
+    kind: "submit_animation",
+    frames: string[],
 };
 
 export type Palette = string[];

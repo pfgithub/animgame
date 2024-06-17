@@ -1,12 +1,13 @@
 import { getStroke } from "perfect-freehand";
 import { palettes, type ContextFrames, type Palette } from "../../shared/shared.ts";
 import { addPtrEvHs, autosaveHandler, onupdateAndNow, signal, type Signal, type Vec2 } from "./util.tsx";
+import { sendMessage } from "./connection.tsx";
 
 // TODO:
 // - [x] Onion skinning
 // - [x] Canned frames must be readonly
-// - [ ] Validate all frames drawn before submit
-// - [ ] Submit button
+// - [x] Validate all frames drawn before submit
+// - [x] Submit button
 // - [x] Play button
 
 const IMGW = 1000;
@@ -115,14 +116,20 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         });
         onupdateAndNow(cfg, () => tabv.disabled = cfg.value.playing);
     }
-    const loadframe = (i: number) => {
+    const save = () => {
         const curr_frame = cfg.value.frame;
         if(curr_frame >= context.frames.length) {
             cfg.value.uncanned_frames[curr_frame - context.frames.length] = srlz();
         }
+    };
+    const loadframe = (i: number) => {
+        // save
+        save();
 
         // clear
         mysvg.innerHTML = "";
+
+        // load
         if(cfg.value.onion_skinning) loadframe_internal(i - 1, true);
         loadframe_internal(i, false);
     };
@@ -212,10 +219,25 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         }
     }, dset);
     addOtherButton(mybuttons, "submit", () => {
-        if(!confirm("Really submit your drawing?")) return;
-        const srlzres = srlz();
-        console.log(srlzres);
-    }, dset);
+        save();
+        const uncanned_frames = cfg.value.uncanned_frames;
+        for(let i = 0; i < context.ask_for_frames; i++) {
+            const f = uncanned_frames[i];
+            if(f == null || f.undo_strokes.length === 0) {
+                alert("You didn't draw anything for frame "+(context.start_frame_index+context.frames.length+i+1));
+                loadframe(context.frames.length + i);
+                return;
+            }
+        }
+
+        if(!confirm("Really submit your animation?")) return;
+
+        // it's saved, send it off
+        sendMessage({
+            kind: "submit_animation",
+            frames: cfg.value.uncanned_frames.map(ucf => JSON.stringify(ucf)),
+        });
+    }, d => onupdateAndNow(cfg, () => d(cfg.value.playing)));
     const srlz = () => {
         const srlzres: ImgSrlz = {
             undo_strokes: [],
