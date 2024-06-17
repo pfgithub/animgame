@@ -3,13 +3,6 @@ import { palettes, type ContextFrames, type Palette } from "../../shared/shared.
 import { addPtrEvHs, autosaveHandler, onupdateAndNow, rootel, signal, type Signal, type Vec2 } from "./util.tsx";
 import { sendMessage } from "./connection.tsx";
 
-// TODO:
-// - [x] Onion skinning
-// - [x] Canned frames must be readonly
-// - [x] Validate all frames drawn before submit
-// - [x] Submit button
-// - [x] Play button
-
 const IMGW = 1000;
 const IMGH = 1000;
 
