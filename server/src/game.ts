@@ -220,6 +220,7 @@ export function postFrames(send: SendCB, gameid: GameID, playerid: PlayerID, fra
     if(fset.images.length !== target_frame_count) {
         throw new Error("Assertion failure");
     }
+    send(playerid, {kind: "show_frame_accepted"});
     if(game.frames.every(frame => frame.images.length === target_frame_count)) {
         startDrawRound(send, gameid, game, game.draw_frame_num! + 1);
     }
@@ -237,6 +238,7 @@ export function catchupPlayer(send: SendCB, gameid: GameID, playerid: PlayerID) 
     }else if(game.state === "CHOOSE_PROMPTS") {
         send(pl.id, {kind: "show_prompt_sel"});
     }else if(game.state === "DRAW_FRAME") {
+        // TODO: check if the client has already drawn the frames
         send(pl.id, {kind: "show_draw_frame", context: getContextFrames(gameid, playerid)});
         // the client will ask to getContextFrames()
     }else if(game.state === "REVIEW") {
@@ -284,3 +286,12 @@ export type Ctx = {
 
 // if we didn't have palettes, we could have you guess
 // out of the last frames which one is yours
+
+//
+// #REVIEW#
+//
+// let's show the last frame of the anim
+// then you guess which prompt it was
+// then play the anim and have 'next'
+//    'next' is like 'ready' - once everyone
+//    presses it it goes next.

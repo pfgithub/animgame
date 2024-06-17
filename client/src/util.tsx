@@ -79,3 +79,10 @@ setInterval(() => {
         (node as any).__autosave_handler?.();
     });
 }, 1000);
+
+
+export const rootel = document.getElementById("root")!;
+export function replacepage(el: HTMLElement) {
+    rootel.innerHTML = "";
+    rootel.appendChild(el);
+}

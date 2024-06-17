@@ -1,7 +1,7 @@
 import {palettes, type BroadcastMsg, type RecieveMessage} from "../../shared/shared.ts";
 import { connect, sendMessage } from "./connection.tsx";
 import { drawpage } from "./drawpage.tsx";
-import { wsEventHandler } from "./util.tsx";
+import { replacepage, rootel, wsEventHandler } from "./util.tsx";
 
 // should we have each person make one frame or two frames?
 // two frames maybe
@@ -11,12 +11,6 @@ import { wsEventHandler } from "./util.tsx";
 // they have to refresh and everyone else has to refresh
 // but no data loss!important
 
-const rootel = document.getElementById("root")!;
-
-function replacepage(el: HTMLElement) {
-    rootel.innerHTML = "";
-    rootel.appendChild(el);
-}
 function entergamecode() {
     // TODO autofill these with the previous values
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
@@ -59,6 +53,10 @@ function handleMessage(msg: BroadcastMsg) {
         showpromptaccepted(msg.prompt);
     }else if(msg.kind === "show_draw_frame") {
         replacepage(drawpage(msg.context));
+    }else if(msg.kind === "show_frame_accepted") {
+        showdrawsent();
+    }else if(msg.kind === "show_review") {
+        showreview();
     }
     console.log(msg);
 }
@@ -132,6 +130,13 @@ function choosepalettesandready() {
         updateReadyBtn();
     });
 }
+function showdrawsent() {
+    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+        <div style="display:flex;flex-direction:column;gap:1rem">
+            <div>ShowDrawAccepted</div>
+        </div>
+    </div></div>`;
+}
 function showpromptsel() {
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
@@ -159,7 +164,14 @@ function showpromptsel() {
 function showpromptaccepted(prompt: string) {
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
-            <div>ShowPromptAccepted</div>
+            <div>ShowPromptSent</div>
+        </div>
+    </div></div>`;
+}
+function showreview() {
+    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+        <div style="display:flex;flex-direction:column;gap:1rem">
+            <div>ShowReview</div>
         </div>
     </div></div>`;
 }

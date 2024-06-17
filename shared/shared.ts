@@ -23,6 +23,8 @@ export type BroadcastMsg = {
     kind: "show_draw_frame",
     context: ContextFrames,
 } | {
+    kind: "show_frame_accepted",
+} | {
     kind: "show_review",
 } | {
     kind: "ready_ack",

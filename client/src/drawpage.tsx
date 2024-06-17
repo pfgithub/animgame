@@ -1,6 +1,6 @@
 import { getStroke } from "perfect-freehand";
 import { palettes, type ContextFrames, type Palette } from "../../shared/shared.ts";
-import { addPtrEvHs, autosaveHandler, onupdateAndNow, signal, type Signal, type Vec2 } from "./util.tsx";
+import { addPtrEvHs, autosaveHandler, onupdateAndNow, rootel, signal, type Signal, type Vec2 } from "./util.tsx";
 import { sendMessage } from "./connection.tsx";
 
 // TODO:
