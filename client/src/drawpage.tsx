@@ -2,6 +2,13 @@ import { getStroke } from "perfect-freehand";
 import { palettes, type ContextFrames, type Palette } from "../../shared/shared.ts";
 import { addPtrEvHs, autosaveHandler, onupdateAndNow, signal, type Signal, type Vec2 } from "./util.tsx";
 
+// TODO:
+// - [ ] Onion skinning
+// - [ ] Canned frames must be readonly
+// - [ ] Validate all frames drawn before submit
+// - [ ] Submit button
+// - [ ] Play button
+
 const IMGW = 1000;
 const IMGH = 1000;
 
@@ -10,6 +17,8 @@ type Cfg = {
     line_width: number,
     color: string,
     background: string,
+    frame: number,
+    uncanned_frames: ImgSrlz[],
 };
 
 type StrokeSrlz = {
@@ -36,9 +45,11 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         line_width: 20,
         color: "",
         background: "",
+        frame: context.frames.length,
+        uncanned_frames: [],
     });
-    const linesv: SVGPathElement[] = [];
-    const linesr: SVGPathElement[] = [];
+    let linesv: SVGPathElement[] = [];
+    let linesr: SVGPathElement[] = [];
     cfg.value.color = cfg.value.palette[0],
     cfg.value.background = cfg.value.palette[cfg.value.palette.length - 1],
 
@@ -69,22 +80,54 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     }
     const frametabs: HTMLDivElement = rootel.querySelector("#frametabs")!;
     for(let i = 0; i < context.frames.length + context.ask_for_frames; i++) {
+        const _i = i;
+
         const tabv = document.createElement("button");
-        tabv.setAttribute("style", "flex:1;background-color:white;border:2px solid gray;border-radius: 8px 8px 0 0;border-bottom:none;padding:0.25rem 0.25rem");
-        tabv.textContent = "Frame "+(i + context.start_frame_index + 1);
+        tabv.setAttribute("style", "flex:1;background-color:white;border:2px solid;border-radius: 10px 10px 0 0;border-bottom:none;padding:0");
+        tabv.innerHTML = `<div class="editme" style="height:100%;box-sizing:border-box;border: 2px solid;border-radius:8px 8px 0 0;border-bottom:none;padding:0.25rem 0.25rem"></div>`;
+        const tabsub: HTMLDivElement = tabv.querySelector(".editme")!;
+        tabsub.textContent = "Frame "+(i + context.start_frame_index + 1);
         frametabs.appendChild(tabv);
+        const tabi = i;
+        onupdateAndNow(cfg, () => {
+            if(_i === cfg.value.frame) {
+                tabv.style.borderColor = "red";
+                tabsub.style.borderColor = "transparent";
+            }else{
+                tabv.style.borderColor = "transparent";
+                tabsub.style.borderColor = "gray";
+            }
+        });
+        tabv.addEventListener("click", () => {
+            const curr_frame = cfg.value.frame;
+            if(curr_frame >= context.frames.length) {
+                cfg.value.uncanned_frames[curr_frame - context.frames.length] = srlz();
+            }
+            loadframe(_i);
+        });
     }
+    const loadframe = (i: number) => {
+        cfg.value.frame = i;
+        const cannedframe = context.frames[i]?.value;
+        const framev: ImgSrlz = (cannedframe != null ? JSON.parse(cannedframe) : null) ?? cfg.value.uncanned_frames[i - context.frames.length] ?? ({
+            undo_strokes: [],
+            redo_strokes: [],
+            background_color_index: cfg.value.palette.indexOf(cfg.value.background),
+        } satisfies ImgSrlz);
+        rendersrlz(framev);
+        cfg.update();
+    };
     {
         const playbtn = document.createElement("button");
-        playbtn.setAttribute("style", "background-color:white;border:2px solid gray;border-radius: 8px 8px 0 0;border-bottom:none;padding:0.25rem 0.75rem");
+        playbtn.setAttribute("style", "background-color:white;border:2px solid gray;border-radius: 8px 8px 0 0;border-bottom:none;padding:0.25rem 0.75rem;margin:2px 0.25rem 0 0.25rem");
         playbtn.textContent = "Play";
         frametabs.appendChild(playbtn);
     }
 
     const rootitm: HTMLDivElement = rootel.querySelector("#rootitm")!;
     rootitm.appendChild(autosaveHandler(() => {
-        localStorage.setItem("animgame-saved-drawing", JSON.stringify(srlz()));
-        console.log("saved");
+        // localStorage.setItem("animgame-saved-drawing", JSON.stringify(srlz()));
+        // console.log("saved");
     }));
     const mysvg: SVGElement = rootel.querySelector("#mysvg")!;
     onupdateAndNow(cfg, () => {
@@ -148,10 +191,34 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
             }
         };
         as(srlzres.undo_strokes, linesv);
-        // as(srlzres.redo_strokes, linesr);
+        as(srlzres.redo_strokes, linesr);
 
         return srlzres;
     }
+    const unsrlzStroke = (stroke: StrokeSrlz): SVGPathElement => {
+        const renderv = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        renderv.setAttribute("fill", cfg.value.palette[stroke.color_index]);
+        updatePath(renderv, stroke);
+        return renderv;
+    };
+    const updatePath = (path: SVGPathElement, stroke: StrokeSrlz) => {
+        (path as any).__data_rsrlz = stroke;
+        path.setAttribute("d", getSvgPathFromStroke(stroke.points));
+    };
+    const rendersrlz = (srlz: ImgSrlz) => {
+        // 1. clear
+        mysvg.innerHTML = "";
+        // 2. convert strokes
+        linesv = srlz.undo_strokes.map(stroke => unsrlzStroke(stroke));
+        linesr = srlz.redo_strokes.map(stroke => unsrlzStroke(stroke));
+        // 3. apply all undo strokes
+        for(const stroke of linesv) {
+            mysvg.appendChild(stroke);
+        }
+        // 4. set background color
+        cfg.value.background = cfg.value.palette[srlz.background_color_index];
+        cfg.update();
+    };
 
     // it seems to be a firefox-only bug
     // drawing with two fingers (if you set touch-action to none)
@@ -168,9 +235,11 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         const ptrid = e.pointerId;
         const stroke_color = cfg.value.color;
         const line_width = cfg.value.line_width;
-        const renderv = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const renderv = unsrlzStroke({
+            color_index: cfg.value.palette.indexOf(stroke_color),
+            points: [],
+        });
         mysvg.appendChild(renderv);
-        renderv.setAttribute("fill", stroke_color);
 
         const updaterender = (size: Vec2) => {
             let stroke: Vec2[] = getStroke(perfectPoints, {
@@ -178,12 +247,10 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
                 thinning: (80 - line_width) / 160,
             }) as Vec2[];
             stroke = stroke.map((pt): Vec2 => [pt[0] / size[0] * IMGW, pt[1] / size[1] * IMGH]);
-            const strokev: StrokeSrlz = {
+            updatePath(renderv, {
                 points: stroke,
                 color_index: cfg.value.palette.indexOf(stroke_color),
-            };
-            (renderv as any).__data_rsrlz = strokev;
-            renderv.setAttribute("d", getSvgPathFromStroke(stroke));
+            });
         };
 
         const perfectPoints: [...Vec2, number][] = [];
@@ -211,6 +278,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         addpoint(e);
     });
 
+    loadframe(cfg.value.frame);
     cfg.update();
 
     return rootel;
