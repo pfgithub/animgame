@@ -113,6 +113,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         tabv.addEventListener("click", () => {
             loadframe(_i);
         });
+        onupdateAndNow(cfg, () => tabv.disabled = cfg.value.playing);
     }
     const loadframe = (i: number) => {
         const curr_frame = cfg.value.frame;
@@ -141,6 +142,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         const playbtn = document.createElement("button");
         playbtn.setAttribute("style", "background-color:white;border:2px solid gray;border-radius: 8px 8px 0 0;border-bottom:none;padding:0.25rem 0.75rem;margin:2px 0.25rem 0 0.25rem");
         playbtn.textContent = "Play";
+        onupdateAndNow(cfg, () => playbtn.disabled = cfg.value.playing);
         playbtn.addEventListener("mousedown", async () => {
             if(cfg.value.playing) return;
             cfg.value.playing = true;
@@ -213,7 +215,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         if(!confirm("Really submit your drawing?")) return;
         const srlzres = srlz();
         console.log(srlzres);
-    });
+    }, dset);
     const srlz = () => {
         const srlzres: ImgSrlz = {
             undo_strokes: [],
