@@ -7,7 +7,7 @@ import { addPtrEvHs, autosaveHandler, onupdateAndNow, signal, type Signal, type 
 // - [ ] Canned frames must be readonly
 // - [ ] Validate all frames drawn before submit
 // - [ ] Submit button
-// - [ ] Play button
+// - [x] Play button
 
 const IMGW = 1000;
 const IMGH = 1000;
@@ -19,6 +19,7 @@ type Cfg = {
     background: string,
     frame: number,
     uncanned_frames: ImgSrlz[],
+    onion_skinning: boolean,
 };
 
 type StrokeSrlz = {
@@ -47,6 +48,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         background: "",
         frame: context.frames.length,
         uncanned_frames: [],
+        onion_skinning: false,
     });
     let linesv: SVGPathElement[] = [];
     let linesr: SVGPathElement[] = [];
@@ -79,7 +81,8 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         promptwrapper.remove();
     }
     const frametabs: HTMLDivElement = rootel.querySelector("#frametabs")!;
-    for(let i = 0; i < context.frames.length + context.ask_for_frames; i++) {
+    const total_frame_count = context.frames.length + context.ask_for_frames;
+    for(let i = 0; i < total_frame_count; i++) {
         const _i = i;
 
         const tabv = document.createElement("button");
@@ -99,14 +102,15 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
             }
         });
         tabv.addEventListener("click", () => {
-            const curr_frame = cfg.value.frame;
-            if(curr_frame >= context.frames.length) {
-                cfg.value.uncanned_frames[curr_frame - context.frames.length] = srlz();
-            }
             loadframe(_i);
         });
     }
     const loadframe = (i: number) => {
+        const curr_frame = cfg.value.frame;
+        if(curr_frame >= context.frames.length) {
+            cfg.value.uncanned_frames[curr_frame - context.frames.length] = srlz();
+        }
+
         cfg.value.frame = i;
         const cannedframe = context.frames[i]?.value;
         const framev: ImgSrlz = (cannedframe != null ? JSON.parse(cannedframe) : null) ?? cfg.value.uncanned_frames[i - context.frames.length] ?? ({
@@ -121,6 +125,19 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         const playbtn = document.createElement("button");
         playbtn.setAttribute("style", "background-color:white;border:2px solid gray;border-radius: 8px 8px 0 0;border-bottom:none;padding:0.25rem 0.75rem;margin:2px 0.25rem 0 0.25rem");
         playbtn.textContent = "Play";
+        playbtn.addEventListener("mousedown", async () => {
+            const prev_os = cfg.value.onion_skinning;
+            const prev_f = cfg.value.frame;
+            cfg.value.onion_skinning = false;
+
+            for(let i = 0; i < total_frame_count; i++) {
+                loadframe(i);
+                await new Promise(r => setTimeout(r, 200));
+            }
+
+            cfg.value.onion_skinning = prev_os;
+            loadframe(prev_f);
+        });
         frametabs.appendChild(playbtn);
     }
 
