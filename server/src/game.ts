@@ -25,7 +25,8 @@ type GameStateEnum = (
     | "ALLOW_JOINING"
     | "CHOOSE_PROMPTS"
     | "DRAW_FRAME"
-    | "REVIEW"
+    | "REVIEW_GUESS"
+    | "REVIEW_REVEAL"
 );
 
 type FrameSet = {
@@ -40,6 +41,7 @@ type GameState = {
     },
     state: GameStateEnum,
     draw_frame_num?: number,
+    review_frame_num?: number,
     players: GamePlayer[],
     frames: FrameSet[],
 };
@@ -115,19 +117,36 @@ export function choosePalette(gameid: GameID, playerid: PlayerID, palette: numbe
 export function markReady(send: SendCB, gameid: GameID, playerid: PlayerID, value: boolean) {
     const game = games.get(gameid);
     if(game == null) throw new MsgError("Game not found");
-    if(game.state !== "ALLOW_JOINING") throw new MsgError("You cannot mark ready at this time");
     const pl = game.players.find(pl => pl.id === playerid);
     if(pl == null) throw new MsgError("You are not in the game");
     pl.ready = value;
 
     send(playerid, {kind: "ready_ack", value});
 
-    if(game.players.length >= MIN_PLAYERS && game.players.every(pl => pl.ready)) {
-        // start the game
-        startGame(send, gameid, game);
+    if(game.players.every(pl => pl.ready)) {
+        if(game.state === "ALLOW_JOINING") {
+            if(game.players.length >= MIN_PLAYERS) {
+                // start the game
+                startGame(send, gameid, game);
+            }
+        }else if(game.state === "REVIEW_REVEAL") {
+            reviewNext(send, gameid, game);
+        }
+    }
+}
+function shuffle<T>(array: T[]) {
+    let currentIndex = array.length;
+  
+    while (currentIndex != 0) {
+        let randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
     }
 }
 function startGame(send: SendCB, gameid: GameID, game: GameState) {
+    // shuffle players
+    shuffle(game.players);
+
     game.state = "CHOOSE_PROMPTS";
     const used_palettes = new Set<number>();
     for(const player of game.players) {
@@ -150,7 +169,7 @@ function startGame(send: SendCB, gameid: GameID, game: GameState) {
         return {palette: game.players[i].selected_palette!, images: []};
     });
 
-    send(gameid, {kind: "show_prompt_sel"});
+    catchupAll(send, gameid);
 }
 export function postPrompt(send: SendCB, gameid: GameID, playerid: PlayerID, prompt: string) {
     const game = games.get(gameid);
@@ -172,13 +191,20 @@ function startDrawRound(send: SendCB, gameid: GameID, game: GameState, num: numb
     }
     game.state = "DRAW_FRAME";
     game.draw_frame_num = num;
-    for(const player of game.players) {
-        send(player.id, {kind: "show_draw_frame", context: getContextFrames(gameid, player.id)});
-    }
+    catchupAll(send, gameid);
 }
 function startReview(send: SendCB, gameid: GameID, game: GameState) {
-    game.state = "REVIEW";
-    send(gameid, {kind: "show_review"});
+    reviewNext(send, gameid, game);
+}
+function reviewNext(send: SendCB, gameid: GameID, game: GameState) {
+    for(const player of game.players) player.ready = false;
+    game.state = "REVIEW_REVEAL";
+    if(game.review_frame_num == null) {
+        game.review_frame_num = 0;
+    }else{
+        game.review_frame_num += 1;
+    }
+    catchupAll(send, gameid);
 }
 export function getContextFrames(gameid: GameID, playerid: PlayerID): ContextFrames {
     const game = games.get(gameid);
@@ -229,6 +255,12 @@ export function postFrames(send: SendCB, gameid: GameID, playerid: PlayerID, fra
 }
 
 type SendCB = (channel: GameID | PlayerID, message: BroadcastMsg) => void;
+export function catchupAll(send: SendCB, gameid: GameID) {
+    const game = games.get(gameid);
+    if(game == null) throw new MsgError("Game not found");
+
+    for(const player of game.players) catchupPlayer(send, gameid, player.id);
+}
 export function catchupPlayer(send: SendCB, gameid: GameID, playerid: PlayerID) {
     const game = games.get(gameid);
     if(game == null) throw new MsgError("Game not found");
@@ -243,8 +275,14 @@ export function catchupPlayer(send: SendCB, gameid: GameID, playerid: PlayerID) 
         // TODO: check if the client has already drawn the frames
         send(pl.id, {kind: "show_draw_frame", context: getContextFrames(gameid, playerid)});
         // the client will ask to getContextFrames()
-    }else if(game.state === "REVIEW") {
-        send(pl.id, {kind: "show_review"});
+    }else if(game.state === "REVIEW_GUESS") {
+        throw new Error("TODO impl review_guess");
+    }else if(game.state === "REVIEW_REVEAL") {
+        send(pl.id, {
+            kind: "review_reveal",
+            animation: game.frames[game.review_frame_num!].images.map(img => img.value),
+            ready: pl.ready,
+        });
     }else assertNever(game.state);
 }
 function assertNever(v: never): never {

@@ -55,8 +55,8 @@ function handleMessage(msg: BroadcastMsg) {
         replacepage(drawpage(msg.context));
     }else if(msg.kind === "show_frame_accepted") {
         showdrawsent();
-    }else if(msg.kind === "show_review") {
-        showreview();
+    }else if(msg.kind === "review_reveal") {
+        showreviewreveal(msg.animation, msg.ready);
     }
     console.log(msg);
 }
@@ -180,7 +180,7 @@ function showpromptaccepted(prompt: string) {
         </div>
     </div></div>`;
 }
-function showreview() {
+function showreviewreveal(animation: string[], ready: boolean) {
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
             <div>ShowReview</div>
