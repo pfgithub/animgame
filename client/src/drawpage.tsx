@@ -3,8 +3,8 @@ import { palettes, type ContextFrames, type Palette } from "../../shared/shared.
 import { addPtrEvHs, autosaveHandler, onupdateAndNow, signal, type Signal, type Vec2 } from "./util.tsx";
 
 // TODO:
-// - [ ] Onion skinning
-// - [ ] Canned frames must be readonly
+// - [x] Onion skinning
+// - [x] Canned frames must be readonly
 // - [ ] Validate all frames drawn before submit
 // - [ ] Submit button
 // - [x] Play button
@@ -48,12 +48,19 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         background: "",
         frame: context.frames.length,
         uncanned_frames: [],
-        onion_skinning: false,
+        onion_skinning: true,
     });
+    const canned = () => cfg.value.frame < context.frames.length;
     let linesv: SVGPathElement[] = [];
     let linesr: SVGPathElement[] = [];
-    cfg.value.color = cfg.value.palette[0],
-    cfg.value.background = cfg.value.palette[cfg.value.palette.length - 1],
+    {
+        cfg.value.color = cfg.value.palette[0];
+        const lastcannedframe = context.frames[context.frames.length - 1]?.value;
+        cfg.value.background = cfg.value.palette[
+            lastcannedframe != null ? (JSON.parse(lastcannedframe) as ImgSrlz).background_color_index :
+            cfg.value.palette.length - 1
+        ];
+    }
 
     rootel.innerHTML = `<div id="rootitm" style="width:max(20rem,min(100vw, calc(100vh - 10rem)));margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
@@ -89,7 +96,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         tabv.setAttribute("style", "flex:1;background-color:white;border:2px solid;border-radius: 10px 10px 0 0;border-bottom:none;padding:0");
         tabv.innerHTML = `<div class="editme" style="height:100%;box-sizing:border-box;border: 2px solid;border-radius:8px 8px 0 0;border-bottom:none;padding:0.25rem 0.25rem"></div>`;
         const tabsub: HTMLDivElement = tabv.querySelector(".editme")!;
-        tabsub.textContent = "Frame "+(i + context.start_frame_index + 1);
+        tabsub.textContent = ""+(i + context.start_frame_index + 1);
         frametabs.appendChild(tabv);
         const tabi = i;
         onupdateAndNow(cfg, () => {
@@ -111,6 +118,13 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
             cfg.value.uncanned_frames[curr_frame - context.frames.length] = srlz();
         }
 
+        // clear
+        mysvg.innerHTML = "";
+        if(cfg.value.onion_skinning) loadframe_internal(i - 1, true);
+        loadframe_internal(i, false);
+    };
+    const loadframe_internal = (i: number, onionskin: boolean) => {
+        if(i < 0) return;
         cfg.value.frame = i;
         const cannedframe = context.frames[i]?.value;
         const framev: ImgSrlz = (cannedframe != null ? JSON.parse(cannedframe) : null) ?? cfg.value.uncanned_frames[i - context.frames.length] ?? ({
@@ -118,14 +132,17 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
             redo_strokes: [],
             background_color_index: cfg.value.palette.indexOf(cfg.value.background),
         } satisfies ImgSrlz);
-        rendersrlz(framev);
+        if(onionskin) rendersrlzos(framev); else rendersrlz(framev);
         cfg.update();
-    };
+    }
     {
+        let playing = false;
         const playbtn = document.createElement("button");
         playbtn.setAttribute("style", "background-color:white;border:2px solid gray;border-radius: 8px 8px 0 0;border-bottom:none;padding:0.25rem 0.75rem;margin:2px 0.25rem 0 0.25rem");
         playbtn.textContent = "Play";
         playbtn.addEventListener("mousedown", async () => {
+            if(playing) return;
+            playing = true;
             const prev_os = cfg.value.onion_skinning;
             const prev_f = cfg.value.frame;
             cfg.value.onion_skinning = false;
@@ -135,6 +152,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
                 await new Promise(r => setTimeout(r, 200));
             }
 
+            playing = false;
             cfg.value.onion_skinning = prev_os;
             loadframe(prev_f);
         });
@@ -152,10 +170,11 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     });
     const topbuttons: HTMLDivElement = rootel.querySelector("#buttonshere2")!;
     const mybuttons: HTMLDivElement = rootel.querySelector("#buttonshere")!;
-    addLinewidthButton(topbuttons, 1, cfg);
-    addLinewidthButton(topbuttons, 2, cfg);
-    addLinewidthButton(topbuttons, 3, cfg);
-    addLinewidthButton(topbuttons, 4, cfg);
+    const dset = (d: (v: boolean) => void) => onupdateAndNow(cfg, () => d(canned()));
+    addLinewidthButton(topbuttons, 1, cfg, dset);
+    addLinewidthButton(topbuttons, 2, cfg, dset);
+    addLinewidthButton(topbuttons, 3, cfg, dset);
+    addLinewidthButton(topbuttons, 4, cfg, dset);
     const tb0 = document.createElement("div");
     tb0.setAttribute("style", "flex:1");
     topbuttons.appendChild(tb0);
@@ -164,20 +183,20 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         if(!popv) return;
         linesr.push(popv);
         popv.remove();
-    });
+    }, dset);
     addOtherButton(topbuttons, "redo", () => {
         const popv = linesr.pop();
         if(!popv) return;
         linesv.push(popv);
         mysvg.appendChild(popv);
-    });
+    }, dset);
     for(const color of cfg.value.palette) {
-        addColorButton(mybuttons, color, cfg);
+        addColorButton(mybuttons, color, cfg, dset);
     }
     addOtherButton(mybuttons, "set bg", () => {
         cfg.value.background = cfg.value.color;
         cfg.update();
-    });
+    }, dset);
     const tb1 = document.createElement("div");
     tb1.setAttribute("style", "flex:1");
     mybuttons.appendChild(tb1);
@@ -188,7 +207,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
             itm.remove();
             linesr.push(itm);
         }
-    });
+    }, dset);
     addOtherButton(mybuttons, "submit", () => {
         if(!confirm("Really submit your drawing?")) return;
         const srlzres = srlz();
@@ -212,6 +231,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
 
         return srlzres;
     }
+    // window.__srlz = () => JSON.stringify(srlz());
     const unsrlzStroke = (stroke: StrokeSrlz): SVGPathElement => {
         const renderv = document.createElementNS("http://www.w3.org/2000/svg", "path");
         renderv.setAttribute("fill", cfg.value.palette[stroke.color_index]);
@@ -222,17 +242,27 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         (path as any).__data_rsrlz = stroke;
         path.setAttribute("d", getSvgPathFromStroke(stroke.points));
     };
+    const rendersrlzos = (srlz: ImgSrlz) => {
+        const res_group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        res_group.style.opacity = "0.5";
+        // 1. convert strokes
+        const vstrokes = srlz.undo_strokes.map(stroke => unsrlzStroke(stroke));
+        // 2. apply all undo strokes
+        for(const stroke of vstrokes) {
+            res_group.appendChild(stroke);
+        }
+        // 3. append group
+        mysvg.appendChild(res_group);
+    };
     const rendersrlz = (srlz: ImgSrlz) => {
-        // 1. clear
-        mysvg.innerHTML = "";
-        // 2. convert strokes
+        // 1. update undo/redo lists
         linesv = srlz.undo_strokes.map(stroke => unsrlzStroke(stroke));
         linesr = srlz.redo_strokes.map(stroke => unsrlzStroke(stroke));
-        // 3. apply all undo strokes
+        // 2. apply all undo strokes
         for(const stroke of linesv) {
             mysvg.appendChild(stroke);
         }
-        // 4. set background color
+        // 3. set background color
         cfg.value.background = cfg.value.palette[srlz.background_color_index];
         cfg.update();
     };
@@ -246,6 +276,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     // one
     mysvg.style.touchAction = "pinch-zoom";
     mysvg.addEventListener("pointerdown", (e: PointerEvent) => {
+        if(canned()) return;
         e.preventDefault();
         e.stopPropagation();
 
@@ -263,7 +294,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
                 size: size[0] / 1000 * line_width,
                 thinning: (80 - line_width) / 160,
             }) as Vec2[];
-            stroke = stroke.map((pt): Vec2 => [pt[0] / size[0] * IMGW, pt[1] / size[1] * IMGH]);
+            stroke = stroke.map((pt): Vec2 => [Math.round(pt[0] / size[0] * IMGW), Math.round(pt[1] / size[1] * IMGH)]);
             updatePath(renderv, {
                 points: stroke,
                 color_index: cfg.value.palette.indexOf(stroke_color),
@@ -302,7 +333,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
 }
 
 
-function addColorButton(parent: HTMLDivElement, color: string, cfg: Signal<Cfg>) {
+function addColorButton(parent: HTMLDivElement, color: string, cfg: Signal<Cfg>, dset?: Dset) {
     const newel = document.createElement("div");
     newel.style.display = "contents";
     newel.innerHTML = `<button id="btnel" style="border:2px solid gray;width:2rem;aspect-ratio:1 / 1;border-radius:9999px;background-color:${color};"></button>`;
@@ -321,8 +352,9 @@ function addColorButton(parent: HTMLDivElement, color: string, cfg: Signal<Cfg>)
         }
     });
     parent.appendChild(newel);
+    dset?.(d => btnel.disabled = d);
 }
-function addLinewidthButton(parent: HTMLDivElement, lw: number, cfg: Signal<Cfg>) {
+function addLinewidthButton(parent: HTMLDivElement, lw: number, cfg: Signal<Cfg>, dset?: Dset) {
     const lwv = lw * 20;
     const newel = document.createElement("div");
     newel.style.display = "contents";
@@ -342,8 +374,10 @@ function addLinewidthButton(parent: HTMLDivElement, lw: number, cfg: Signal<Cfg>
         }
     });
     parent.appendChild(newel);
+    dset?.(d => btnel.disabled = d);
 }
-function addOtherButton(parent: HTMLDivElement, label: string, cb: () => void) {
+type Dset = (cb: (d: boolean) => void) => void;
+function addOtherButton(parent: HTMLDivElement, label: string, cb: () => void, dset?: Dset) {
     const newel = document.createElement("div");
     newel.style.display = "contents";
     newel.innerHTML = `<button id="btnel" style="border:2px solid gray;height:2rem;padding:0 0.5rem;border-radius:9999px;background-color:white;">${label}</button>`;
@@ -352,6 +386,7 @@ function addOtherButton(parent: HTMLDivElement, label: string, cb: () => void) {
         cb();
     }
     parent.appendChild(newel);
+    dset?.(d => btnel.disabled = d);
 }
 
 function getSvgPathFromStroke(points: Vec2[], closed = true) {
