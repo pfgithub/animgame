@@ -257,6 +257,11 @@ export function postFrames(send: SendCB, gameid: GameID, playerid: PlayerID, fra
         startDrawRound(send, gameid, game, game.draw_frame_num! + 1);
     }
 }
+export function saveGame(gameid: GameID): void {
+    const game = games.get(gameid);
+    if(game == null) throw new MsgError("Game not found");
+    Bun.write("saved-games/"+gameid+".json", JSON.stringify(game), {createPath: true});
+}
 
 type SendCB = (channel: GameID | PlayerID, message: BroadcastMsg) => void;
 export function catchupAll(send: SendCB, gameid: GameID) {

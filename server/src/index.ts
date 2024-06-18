@@ -1,5 +1,5 @@
 import { join, resolve } from "path";
-import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady, postPrompt, postFrames } from "./game";
+import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady, postPrompt, postFrames, saveGame } from "./game";
 import type { BroadcastMsg, GameID, PlayerID, RecieveMessage } from "../../shared/shared";
 
 // consider hono so we can run on cloudflare pages?
@@ -54,18 +54,21 @@ const server = Bun.serve<WebsocketData>({
             }else if(msg_val.kind === "submit_animation") {
                 postFrames(send, ws.data.game_id, ws.data.player_id, msg_val.frames);
             }
+            saveGame(ws.data.game_id);
         },
         open(ws) {
             ws.subscribe(ws.data.game_id);
             ws.subscribe(ws.data.player_id);
             console.log("connect: "+ws.data.player_id);
             catchupPlayer(send, ws.data.game_id, ws.data.player_id);
+            saveGame(ws.data.game_id);
         },
         close(ws, code, reason) {
             ws.unsubscribe(ws.data.game_id);
             ws.unsubscribe(ws.data.player_id);
             console.log("disconnect: "+ws.data.player_id+": `"+reason+"` ("+code+")");
             onPlayerDisconnected(ws.data.game_id, ws.data.player_id);
+            saveGame(ws.data.game_id);
         },
         drain(ws) {
             // client is ready for more data
