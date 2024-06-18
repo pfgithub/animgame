@@ -97,7 +97,7 @@ export function onPlayerDisconnected(gameid: GameID, player_id: PlayerID): void 
         player.connected = false;
     }
 }
-export function choosePalette(gameid: GameID, playerid: PlayerID, palette: number) {
+export function choosePalette(send: SendCB, gameid: GameID, playerid: PlayerID, palette: number) {
     const game = games.get(gameid);
     if(game == null) throw new MsgError("Game not found");
     if(game.state !== "ALLOW_JOINING") throw new MsgError("You cannot change your palette at this time");
@@ -109,6 +109,7 @@ export function choosePalette(gameid: GameID, playerid: PlayerID, palette: numbe
     }
     if(pl == null) throw new MsgError("You are not in the game");
     pl.selected_palette = palette;
+    send(gameid, {kind: "update_taken_palettes"});
 }
 export function markReady(send: SendCB, gameid: GameID, playerid: PlayerID, value: boolean) {
     const game = games.get(gameid);

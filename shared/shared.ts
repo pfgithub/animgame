@@ -37,6 +37,12 @@ export type BroadcastMsg = {
     kind: "game_info",
     game_id: GameID,
     player_id: PlayerID,
+} | {
+    kind: "error",
+    message: string,
+} | {
+    kind: "update_taken_palettes",
+    // TODO
 };
 export type RecieveMessage = {
     kind: "mark_ready",
@@ -47,6 +53,9 @@ export type RecieveMessage = {
 } | {
     kind: "submit_animation",
     frames: string[],
+} | {
+    kind: "choose_palette",
+    palette: number,
 };
 
 export type FrameSet = {

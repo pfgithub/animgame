@@ -1,5 +1,5 @@
 import { join, resolve } from "path";
-import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady, postPrompt, postFrames, saveGame } from "./game";
+import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady, postPrompt, postFrames, saveGame, choosePalette } from "./game";
 import type { BroadcastMsg, GameID, PlayerID, RecieveMessage } from "../../shared/shared";
 
 // consider hono so we can run on cloudflare pages?
@@ -45,16 +45,26 @@ const server = Bun.serve<WebsocketData>({
     websocket: {
         maxPayloadLength: 1024 * 1024 * 32, // 32MB
         message(ws, message) {
-            if(typeof message !== "string") throw new MsgError("Message was not a string");
-            const msg_val = JSON.parse(message) as RecieveMessage;
-            if(msg_val.kind === "mark_ready") {
-                markReady(send, ws.data.game_id, ws.data.player_id, msg_val.value);
-            }else if(msg_val.kind === "submit_prompt") {
-                postPrompt(send, ws.data.game_id, ws.data.player_id, msg_val.prompt);
-            }else if(msg_val.kind === "submit_animation") {
-                postFrames(send, ws.data.game_id, ws.data.player_id, msg_val.frames);
+            try {
+                if(typeof message !== "string") throw new MsgError("Message was not a string");
+                const msg_val = JSON.parse(message) as RecieveMessage;
+                if(msg_val.kind === "mark_ready") {
+                    markReady(send, ws.data.game_id, ws.data.player_id, msg_val.value);
+                }else if(msg_val.kind === "submit_prompt") {
+                    postPrompt(send, ws.data.game_id, ws.data.player_id, msg_val.prompt);
+                }else if(msg_val.kind === "submit_animation") {
+                    postFrames(send, ws.data.game_id, ws.data.player_id, msg_val.frames);
+                }else if(msg_val.kind === "choose_palette") {
+                    choosePalette(send, ws.data.game_id, ws.data.player_id, msg_val.palette);
+                }
+                saveGame(ws.data.game_id);
+            }catch(e) {
+                if(e instanceof MsgError) {
+                    send(ws.data.player_id, {kind: "error", message: e.message});
+                }else{
+                    throw e;
+                }
             }
-            saveGame(ws.data.game_id);
         },
         open(ws) {
             ws.subscribe(ws.data.game_id);

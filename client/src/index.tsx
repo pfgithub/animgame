@@ -69,13 +69,16 @@ function entergamecode() {
     });
 }
 function handleMessage(msg: BroadcastMsg) {
+    console.log("<- ", msg);
+
     if(msg.kind === "game_info") {
         setLocalStorage(localstorage_current_game, JSON.stringify({
             game_id: msg.game_id,
             player_id: msg.player_id,
         } satisfies LocalstorageCurrentGame));
-    }
-    if(msg.kind === "choose_palettes_and_ready") {
+    }else if(msg.kind === "error") {
+        alert("Error: "+msg.message);
+    }else if(msg.kind === "choose_palettes_and_ready") {
         choosepalettesandready();
     }else if(msg.kind === "show_prompt_sel") {
         showpromptsel();
@@ -90,7 +93,6 @@ function handleMessage(msg: BroadcastMsg) {
     }else if(msg.kind === "game_over") {
         showend();
     }
-    console.log(msg);
 }
 document.body.appendChild(wsEventHandler(handleMessage));
 function waitpage() {
@@ -118,7 +120,7 @@ function choosepalettesandready() {
     const palettesel: HTMLDivElement = rootel.querySelector("#palettes")!;
     const readycontainer: HTMLButtonElement = rootel.querySelector("#readycontainer")!;
     readycontainer.appendChild(makereadybtn("Ready", false));
-    for(const palette of palettes) {
+    for(const [i, palette] of palettes.entries()) {
         const palettebtn = document.createElement("button");
         palettebtn.setAttribute("style", "border-radius:1rem;display:flex;width:100%;border:none;background-color:transparent;padding:0");
         palettebtn.innerHTML = `
@@ -126,6 +128,9 @@ function choosepalettesandready() {
                 <div class="_here" style="border:2px solid white;flex:1;display:flex"></div>
             </div>
         `;
+        palettebtn.onclick = () => {
+            sendMessage({kind: "choose_palette", palette: i});
+        };
         const pbin: HTMLDivElement = palettebtn.querySelector("._here")!;
         for(let i = 0; i < palette.length; i++) {
             const colorprev = palette[i - 1] ?? "transparent";

@@ -103,7 +103,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         const prompthere: HTMLDivElement = rootel.querySelector("#prompthere")!;
         prompthere.textContent = context.prompt;
     }else{
-        promptwrapper.remove();
+        promptwrapper.textContent = "Continue the animation:";
     }
     const frametabs: HTMLDivElement = rootel.querySelector("#frametabs")!;
     const total_frame_count = context.frames.length + context.ask_for_frames;

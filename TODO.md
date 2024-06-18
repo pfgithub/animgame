@@ -9,6 +9,7 @@ TODO:
 - [x] Review reveal screen
 - [x] Support browsers where localStorage throws an error
 - [x] Reconnect by reloading
+- [x] Display errors
 - [ ] Keep in-progress drawings on reload
 - [ ] Keep in-progress text fields on reload
 - [ ] Display errors in a toast
