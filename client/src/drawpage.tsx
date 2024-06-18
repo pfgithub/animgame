@@ -321,8 +321,8 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
                 thinning: (80 - line_width) / 160,
             }) as Vec2[];
             stroke = stroke.map((pt): Vec2 => [
-                Math.max(1020, Math.min(-20, Math.round(pt[0] / size[0] * IMGW))),
-                Math.max(1020, Math.min(-20, Math.round(pt[1] / size[1] * IMGH))),
+                Math.min(1020, Math.max(-20, Math.round(pt[0] / size[0] * IMGW))),
+                Math.min(1020, Math.max(-20, Math.round(pt[1] / size[1] * IMGH))),
             ]);
             updatePath(renderv, {
                 points: stroke,

@@ -36,6 +36,8 @@ type WebsocketData = {
 };
 
 function send(channel: GameID | PlayerID, message: BroadcastMsg): void {
+    // we should do ws.close() on game_end, but there's no function to close
+    // all subscribers to a channel
     server.publish(channel, JSON.stringify(message));
 }
 const server = Bun.serve<WebsocketData>({

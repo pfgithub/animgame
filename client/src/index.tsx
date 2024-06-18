@@ -1,5 +1,5 @@
 import {palettes, type BroadcastMsg, type Frame, type FrameSet, type ImgSrlz} from "../../shared/shared.ts";
-import { connect, sendMessage } from "./connection.tsx";
+import { connect, disconnect, sendMessage } from "./connection.tsx";
 import { drawcanvas, drawpage, unsrlzImg } from "./drawpage.tsx";
 import { replacepage, rootel, wsEventHandler } from "./util.tsx";
 
@@ -30,6 +30,9 @@ function entergamecode() {
                     </div>
                 </label>
             </form>
+            <div>
+                Past Games: [TODO]
+            </div>
         </div>
     </div></div>`;
     const formel: HTMLFormElement = rootel.querySelector("#myform")!;
@@ -57,6 +60,8 @@ function handleMessage(msg: BroadcastMsg) {
         showdrawsent();
     }else if(msg.kind === "review_reveal") {
         showreviewreveal(msg.frameset, msg.ready);
+    }else if(msg.kind === "game_over") {
+        showend();
     }
     console.log(msg);
 }
@@ -77,16 +82,15 @@ function showfullanimation(frames: string[]) {
     //   has to press it
 }
 function choosepalettesandready() {
-    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
-        <div style="display:flex;flex-direction:column;gap:1rem">
+    rootel.innerHTML = `<div style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+        <div id="readycontainer" style="display:flex;flex-direction:column;gap:1rem">
             <div>ChoosePalettesAndReady</div>
             <div id="palettes" style="display:flex;flex-direction:column;gap:0.25rem"></div>
-            <button id="readybtn" style="border-radius:1rem;border:2px solid black;padding:0.5rem 1rem;font-size:1rem"></button>
         </div>
     </div></div>`;
-    const rootitm: HTMLDivElement = rootel.querySelector("#rootitm")!;
     const palettesel: HTMLDivElement = rootel.querySelector("#palettes")!;
-    const readybtn: HTMLButtonElement = rootel.querySelector("#readybtn")!;
+    const readycontainer: HTMLButtonElement = rootel.querySelector("#readycontainer")!;
+    readycontainer.appendChild(makereadybtn("Ready", false));
     for(const palette of palettes) {
         const palettebtn = document.createElement("button");
         palettebtn.setAttribute("style", "border-radius:1rem;display:flex;width:100%;border:none;background-color:transparent;padding:0");
@@ -113,34 +117,6 @@ function choosepalettesandready() {
         }
         palettesel.appendChild(palettebtn);
     }
-    let ready_state = false;
-    let ready_sending = false;
-    const updateReadyBtn = () => {
-        if(ready_state) {
-            readybtn.textContent = "✓ Ready";
-            readybtn.style.backgroundColor = "green";
-            readybtn.style.color = "white";
-        }else{
-            readybtn.textContent = "Ready";
-            readybtn.style.backgroundColor = "white";
-            readybtn.style.color = "black";
-        }
-        readybtn.disabled = ready_sending;
-    }
-    updateReadyBtn();
-    rootitm.appendChild(wsEventHandler(ev => {
-        console.log("got wsev", ev);
-        if(ev.kind === "ready_ack") {
-            ready_state = ev.value;
-            ready_sending = false;
-            updateReadyBtn();
-        }
-    }));
-    readybtn.addEventListener("click", () => {
-        sendMessage({kind: "mark_ready", value: !ready_state});
-        ready_sending = true;
-        updateReadyBtn();
-    });
 }
 function showdrawsent() {
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
@@ -148,6 +124,14 @@ function showdrawsent() {
             <div>ShowDrawAccepted</div>
         </div>
     </div></div>`;
+}
+function showend() {
+    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+        <div style="display:flex;flex-direction:column;gap:1rem">
+            <div>Game end.</div>
+        </div>
+    </div></div>`;
+    entergamecode();
 }
 function showpromptsel() {
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
@@ -180,16 +164,58 @@ function showpromptaccepted(prompt: string) {
         </div>
     </div></div>`;
 }
+function makereadybtn(label: string, ready_state: boolean): HTMLButtonElement {
+    let ready_sending = false;
+    const readybtn = document.createElement("button");
+    const rtnode = document.createTextNode("");
+    readybtn.appendChild(rtnode);
+    readybtn.setAttribute("style", "border-radius:1rem;border:2px solid black;padding:0.5rem 1rem;font-size:1rem");
+    const updateReadyBtn = () => {
+        if(ready_state) {
+            rtnode.nodeValue = "✓ " + label;
+            readybtn.style.backgroundColor = "green";
+            readybtn.style.color = "white";
+        }else{
+            rtnode.nodeValue = "" + label;
+            readybtn.style.backgroundColor = "white";
+            readybtn.style.color = "black";
+        }
+        readybtn.disabled = ready_sending;
+    }
+    updateReadyBtn();
+    readybtn.appendChild(wsEventHandler(ev => {
+        console.log("got wsev", ev);
+        if(ev.kind === "ready_ack") {
+            ready_state = ev.value;
+            ready_sending = false;
+            updateReadyBtn();
+        }
+    }));
+    readybtn.addEventListener("click", () => {
+        sendMessage({kind: "mark_ready", value: !ready_state});
+        ready_sending = true;
+        updateReadyBtn();
+    });
+    return readybtn;
+}
 function showreviewreveal(frameset: FrameSet, ready: boolean) {
     const palette = palettes[frameset.palette];
     // it would be really nice to break out drawpage so the svg
     // component is seperate so we can use it here
     rootel.innerHTML = `<div id="rootitm" style="width:max(20rem,min(100vw, calc(100vh - 10rem)));margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
-            <div>Prompt: ...todo...</div>
+            <div>Prompt:
+                <h2 id="prompthere" style="margin:0"></h2>
+            </div>
             <div id="svgcontainer" style="border: 4px solid gray;display:block"></div>
+            <div id="nextcontainer" style="display:flex;justify-content:end"></div>
         </div>
     </div></div>`;
+    const nextcontainer: HTMLButtonElement = rootel.querySelector("#nextcontainer")!;
+    nextcontainer.appendChild(makereadybtn("Next", ready));
+
+    const prompthere: HTMLHeadingElement = rootel.querySelector("#prompthere")!;
+    prompthere.textContent = ""+frameset.prompt;
     const svgcontainer: HTMLDivElement = rootel.querySelector("#svgcontainer")!;
     const mysvg = drawcanvas();
     svgcontainer.appendChild(mysvg);
@@ -249,5 +275,6 @@ if(location.hash === "#demo/drawpage") {
     showreviewreveal({
         palette: 6,
         images: [...demo_frames, ...demo_frames],
+        prompt: "A quick brown fox jumps over a lazy dog",
     }, false);
 }

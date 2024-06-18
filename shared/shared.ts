@@ -31,6 +31,8 @@ export type BroadcastMsg = {
 } | {
     kind: "ready_ack",
     value: boolean,
+} | {
+    kind: "game_over",
 };
 export type RecieveMessage = {
     kind: "mark_ready",

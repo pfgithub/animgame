@@ -28,6 +28,7 @@ export function connect(name: string, code: string): void {
     sendMessage = msg => {
         wss.send(JSON.stringify(msg));
     };
+    disconnect = () => wss.close();
 }
 function handleMessage(msg: RecieveMessage) {
     document.querySelectorAll(".data-wsevent_handler").forEach(node => {
@@ -35,5 +36,8 @@ function handleMessage(msg: RecieveMessage) {
     });
 }
 export let sendMessage = (msg: RecieveMessage) => {
+    alert("Not connected");
+};
+export let disconnect = () => {
     alert("Not connected");
 };

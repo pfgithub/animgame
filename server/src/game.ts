@@ -199,7 +199,15 @@ function reviewNext(send: SendCB, gameid: GameID, game: GameState) {
     }else{
         game.review_frame_num += 1;
     }
+    if(game.review_frame_num >= game.frames.length) {
+        // end
+        endGame(send, gameid);
+        return;
+    }
     catchupAll(send, gameid);
+}
+export function endGame(send: SendCB, gameid: GameID) {
+    send(gameid, {kind: "game_over"});
 }
 export function getContextFrames(gameid: GameID, playerid: PlayerID): ContextFrames {
     const game = games.get(gameid);
