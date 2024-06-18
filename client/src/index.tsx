@@ -184,7 +184,7 @@ function showreviewreveal(frameset: FrameSet, ready: boolean) {
     const palette = palettes[frameset.palette];
     // it would be really nice to break out drawpage so the svg
     // component is seperate so we can use it here
-    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+    rootel.innerHTML = `<div id="rootitm" style="width:max(20rem,min(100vw, calc(100vh - 10rem)));margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
             <div>Prompt: ...todo...</div>
             <div id="svgcontainer" style="border: 4px solid gray;display:block"></div>
