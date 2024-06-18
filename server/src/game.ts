@@ -1,4 +1,4 @@
-import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type GameID, type PlayerID} from "../../shared/shared.ts";
+import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type FrameSet, type GameID, type PlayerID} from "../../shared/shared.ts";
 
 export class MsgError extends Error {
     constructor(msg: string) {
@@ -29,11 +29,6 @@ type GameStateEnum = (
     | "REVIEW_REVEAL"
 );
 
-type FrameSet = {
-    palette: number,
-    prompt?: string,
-    images: Frame[],
-};
 type GameState = {
     config: {
         frame_count: number,
@@ -278,9 +273,10 @@ export function catchupPlayer(send: SendCB, gameid: GameID, playerid: PlayerID) 
     }else if(game.state === "REVIEW_GUESS") {
         throw new Error("TODO impl review_guess");
     }else if(game.state === "REVIEW_REVEAL") {
+        const frames = game.frames[game.review_frame_num!];
         send(pl.id, {
             kind: "review_reveal",
-            animation: game.frames[game.review_frame_num!].images,
+            frameset: frames,
             ready: pl.ready,
         });
     }else assertNever(game.state);

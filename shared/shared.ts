@@ -26,7 +26,7 @@ export type BroadcastMsg = {
     kind: "show_frame_accepted",
 } | {
     kind: "review_reveal",
-    animation: Frame[],
+    frameset: FrameSet,
     ready: boolean,
 } | {
     kind: "ready_ack",
@@ -43,6 +43,12 @@ export type RecieveMessage = {
     frames: string[],
 };
 
+export type FrameSet = {
+    palette: number,
+    prompt?: string,
+    images: Frame[],
+};
+
 export type Palette = string[];
 export const palettes: Palette[] = [
     ["#776D5A", "#987D7C", "#A09CB0", "#A3B9C9", "#ABDAE1"],
@@ -54,3 +60,15 @@ export const palettes: Palette[] = [
     ["#353535", "#3C6E71", "#284B63", "#D9D9D9", "#FFFFFF"],
     ["#686868", "#2D5D7B", "#457EAC", "#9191E9", "#C2AFF0"],
 ];
+
+export type ImgSrlz = {
+    undo_strokes: StrokeSrlz[],
+    redo_strokes: StrokeSrlz[],
+    background_color_index: number,
+};
+export type StrokeSrlz = {
+    points: Vec2[],
+    color_index: number,
+};
+
+export type Vec2 = [number, number];

@@ -1,6 +1,6 @@
 import { getStroke } from "perfect-freehand";
-import { palettes, type ContextFrames, type Palette } from "../../shared/shared.ts";
-import { addPtrEvHs, autosaveHandler, onupdateAndNow, rootel, signal, type Signal, type Vec2 } from "./util.tsx";
+import { palettes, type ContextFrames, type ImgSrlz, type Palette, type StrokeSrlz, type Vec2 } from "../../shared/shared.ts";
+import { addPtrEvHs, autosaveHandler, onupdateAndNow, signal, type Signal } from "./util.tsx";
 import { sendMessage } from "./connection.tsx";
 
 const IMGW = 1000;
@@ -16,16 +16,6 @@ type Cfg = {
     playing: boolean,
 };
 
-type StrokeSrlz = {
-    points: Vec2[],
-    color_index: number,
-};
-type ImgSrlz = {
-    undo_strokes: StrokeSrlz[],
-    redo_strokes: StrokeSrlz[],
-    background_color_index: number,
-};
-
 export function drawcanvas(): SVGSVGElement {
     const mysvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     mysvg.setAttribute("style", "display:block;aspect-ratio:1 / 1;width:100%");
@@ -38,14 +28,14 @@ function updatePath(path: SVGPathElement, stroke: StrokeSrlz) {
     (path as any).__data_rsrlz = stroke;
     path.setAttribute("d", getSvgPathFromStroke(stroke.points));
 };
-function unsrlzStroke(stroke: StrokeSrlz, palette: Palette): SVGPathElement {
+export function unsrlzStroke(stroke: StrokeSrlz, palette: Palette): SVGPathElement {
     const renderv = document.createElementNS("http://www.w3.org/2000/svg", "path");
     // renderv.setAttribute("style", "shape-rendering:crispEdges"); // I think this looks cool but it's a little misleading
     renderv.setAttribute("fill", palette[stroke.color_index]);
     updatePath(renderv, stroke);
     return renderv;
 };
-function unsrlzImg(parent: SVGElement, srlz: ImgSrlz, palette: Palette): SVGPathElement[] {
+export function unsrlzImg(parent: SVGElement, srlz: ImgSrlz, palette: Palette): SVGPathElement[] {
     // 1. convert strokes
     const vstrokes = srlz.undo_strokes.map(stroke => unsrlzStroke(stroke, palette));
     // 2. apply all undo strokes
@@ -330,7 +320,10 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
                 size: size[0] / 1000 * line_width,
                 thinning: (80 - line_width) / 160,
             }) as Vec2[];
-            stroke = stroke.map((pt): Vec2 => [Math.round(pt[0] / size[0] * IMGW), Math.round(pt[1] / size[1] * IMGH)]);
+            stroke = stroke.map((pt): Vec2 => [
+                Math.max(1020, Math.min(-20, Math.round(pt[0] / size[0] * IMGW))),
+                Math.max(1020, Math.min(-20, Math.round(pt[1] / size[1] * IMGH))),
+            ]);
             updatePath(renderv, {
                 points: stroke,
                 color_index: palette.indexOf(stroke_color),

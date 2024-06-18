@@ -27,8 +27,6 @@ export function wsEventHandler(cb: (ev: BroadcastMsg) => void): HTMLDivElement {
     return el;
 }
 
-export type Vec2 = [number, number];
-
 
 type PtrEvHs = {
     onpointermove: (e: PointerEvent) => void,

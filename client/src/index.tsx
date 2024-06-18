@@ -1,6 +1,6 @@
-import {palettes, type BroadcastMsg, type Frame, type RecieveMessage} from "../../shared/shared.ts";
+import {palettes, type BroadcastMsg, type Frame, type FrameSet, type ImgSrlz} from "../../shared/shared.ts";
 import { connect, sendMessage } from "./connection.tsx";
-import { drawpage } from "./drawpage.tsx";
+import { drawcanvas, drawpage, unsrlzImg } from "./drawpage.tsx";
 import { replacepage, rootel, wsEventHandler } from "./util.tsx";
 
 // should we have each person make one frame or two frames?
@@ -56,7 +56,7 @@ function handleMessage(msg: BroadcastMsg) {
     }else if(msg.kind === "show_frame_accepted") {
         showdrawsent();
     }else if(msg.kind === "review_reveal") {
-        showreviewreveal(msg.animation, msg.ready);
+        showreviewreveal(msg.frameset, msg.ready);
     }
     console.log(msg);
 }
@@ -176,18 +176,54 @@ function showpromptsel() {
 function showpromptaccepted(prompt: string) {
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
-            <div>ShowPromptSent</div>
+            <div>ShowPromptAccepted</div>
         </div>
     </div></div>`;
 }
-function showreviewreveal(animation: Frame[], ready: boolean) {
+function showreviewreveal(frameset: FrameSet, ready: boolean) {
+    const palette = palettes[frameset.palette];
     // it would be really nice to break out drawpage so the svg
     // component is seperate so we can use it here
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
-            <div>ShowReview</div>
+            <div>Prompt: ...todo...</div>
+            <div id="svgcontainer" style="border: 4px solid gray;display:block"></div>
         </div>
     </div></div>`;
+    const svgcontainer: HTMLDivElement = rootel.querySelector("#svgcontainer")!;
+    const mysvg = drawcanvas();
+    svgcontainer.appendChild(mysvg);
+
+    // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/animate
+    // animate x pos, calcMode = discrete
+
+    const root_group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    mysvg.appendChild(root_group);
+    const offsets: number[] = [];
+    let offset = 0;
+    for(const frame of frameset.images) {
+        const frame_value: ImgSrlz = JSON.parse(frame.value);
+        const frame_group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        frame_group.setAttribute("transform", `translate(${-offset}, 0)`);
+        offsets.push(offset);
+        root_group.appendChild(frame_group);
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("width", "1000");
+        rect.setAttribute("height", "1000");
+        rect.setAttribute("fill", palette[frame_value.background_color_index]);
+        frame_group.appendChild(rect);
+        unsrlzImg(frame_group, frame_value, palette);
+        offset += 1100;
+    }
+    const animation = document.createElementNS("http://www.w3.org/2000/svg", "animateTransform");
+    animation.setAttribute("attributeName", "transform");
+    animation.setAttribute("attributeType", "XML");
+    animation.setAttribute("type", "translate");
+    animation.setAttribute("values", offsets.map(of => `${of},0`).join(";"));
+    animation.setAttribute("dur", (frameset.images.length * 200)+"ms");
+    animation.setAttribute("repeatCount", "indefinite");
+    animation.setAttribute("calcMode", "discrete");
+    root_group.appendChild(animation);
 }
 
 entergamecode();
@@ -210,5 +246,8 @@ if(location.hash === "#demo/drawpage") {
         start_frame_index: 4,
     }));
 }else if(location.hash === "#demo/showreviewreveal") {
-    showreviewreveal(demo_frames, false);
+    showreviewreveal({
+        palette: 6,
+        images: [...demo_frames, ...demo_frames],
+    }, false);
 }
