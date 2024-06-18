@@ -7,7 +7,8 @@ TODO:
 - [x] Play button
 - [x] Review reveal logic in game.ts
 - [x] Review reveal screen
-- [ ] Reconnect by reloading
+- [x] Support browsers where localStorage throws an error
+- [x] Reconnect by reloading
 - [ ] Keep in-progress drawings on reload
 - [ ] Keep in-progress text fields on reload
 - [ ] Display errors in a toast

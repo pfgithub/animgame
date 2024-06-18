@@ -33,6 +33,10 @@ export type BroadcastMsg = {
     value: boolean,
 } | {
     kind: "game_over",
+} | {
+    kind: "game_info",
+    game_id: GameID,
+    player_id: PlayerID,
 };
 export type RecieveMessage = {
     kind: "mark_ready",

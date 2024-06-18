@@ -75,15 +75,14 @@ const server = Bun.serve<WebsocketData>({
         const { pathname, searchParams } = new URL(request.url);
 
         if(pathname === "/websocket") {
-            const codeparam = searchParams.get("code")?.toUpperCase();
+            const codeparam = searchParams.get("code");
             const nameparam = searchParams.get("name");
             if(codeparam == null || nameparam == null) {
                 return new Response("Missing codeparam | nameparam", {status: 404});
             }
 
-            const game_id = lookupGame(codeparam);
-            if(game_id == null) return new Response("Game not found", {status: 400});
-
+            const game_id = lookupGame(codeparam) ?? (codeparam as GameID);
+            console.log("try join game: "+game_id);
             const player_id = joinGame(game_id, nameparam);
 
             if(!server.upgrade(request, {

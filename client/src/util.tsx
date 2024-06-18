@@ -1,4 +1,4 @@
-import type { BroadcastMsg } from "../../shared/shared";
+import type { BroadcastMsg, GameID, PlayerID } from "../../shared/shared";
 
 export type Signal<T> = {value: T, update: () => void};
 export function signal<T>(v: T): Signal<T> {
@@ -83,4 +83,33 @@ export const rootel = document.getElementById("root")!;
 export function replacepage(el: HTMLElement) {
     rootel.innerHTML = "";
     rootel.appendChild(el);
+}
+
+
+export const localstorage_current_game = "animgame:current_game";
+export const localstorage_name = "animgame:name";
+export type LocalstorageCurrentGame = {
+    game_id: GameID,
+    player_id: PlayerID,
+};
+
+export function setLocalStorage(name: string, value: string) {
+    try {sessionStorage.setItem(name, value);} catch {}
+    try {localStorage.setItem(name, value);} catch {}
+}
+export function removeLocalStorage(name: string) {
+    try {sessionStorage.removeItem(name);} catch {}
+    try {localStorage.removeItem(name);} catch {}
+}
+export function getLocalStorage(name: string): string | null {
+    // prefer sessionStorage over localStorage
+    try {
+        const res = sessionStorage.getItem(name);
+        if(res != null) return res;
+    } catch {}
+    try {
+        const res = localStorage.getItem(name);
+        if(res != null) return res;
+    } catch {}
+    return null;
 }

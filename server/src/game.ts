@@ -63,13 +63,14 @@ export function createGame(): string {
     return gamestr;
 }
 export function lookupGame(gamestr: string): null | GameID {
-    const gres = game_id_map.get(gamestr);
+    const gres = game_id_map.get(gamestr.toUpperCase());
     if(gres == null) return null;
     return gres;
 }
 export function joinGame(gameid: GameID, player_name: string): PlayerID {
     const game = games.get(gameid);
     if(game == null) throw new MsgError("Game not found");
+    if(game.players.some(pl => pl.id === player_name)) return player_name as PlayerID;
     if(game.state !== "ALLOW_JOINING") throw new MsgError("No new players are allowed to join the game.");
     if(game.players.length >= MAX_PLAYERS) throw new MsgError("The game is full.");
     if(game.players.some(pl => pl.name === player_name)) throw new MsgError("Player name already taken.");
@@ -269,6 +270,13 @@ export function catchupPlayer(send: SendCB, gameid: GameID, playerid: PlayerID) 
     if(game == null) throw new MsgError("Game not found");
     const pl = game.players.find(pl => pl.id === playerid);
     if(pl == null) throw new MsgError("You are not in the game");
+
+    if(game.state !== "ALLOW_JOINING") {
+        send(playerid, {kind: "game_info",
+            game_id: gameid,
+            player_id: playerid,
+        });
+    }
 
     if(game.state === "ALLOW_JOINING") {
         send(pl.id, {kind: "choose_palettes_and_ready"});

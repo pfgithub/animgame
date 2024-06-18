@@ -1,7 +1,7 @@
 import {palettes, type BroadcastMsg, type Frame, type FrameSet, type ImgSrlz} from "../../shared/shared.ts";
 import { connect, disconnect, sendMessage } from "./connection.tsx";
 import { drawcanvas, drawpage, unsrlzImg } from "./drawpage.tsx";
-import { replacepage, rootel, wsEventHandler } from "./util.tsx";
+import { removeLocalStorage, getLocalStorage, localstorage_current_game, localstorage_name, replacepage, rootel, setLocalStorage, wsEventHandler, type LocalstorageCurrentGame } from "./util.tsx";
 
 // should we have each person make one frame or two frames?
 // two frames maybe
@@ -14,12 +14,12 @@ import { replacepage, rootel, wsEventHandler } from "./util.tsx";
 function entergamecode() {
     // TODO autofill these with the previous values
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
-        <div style="display:flex;flex-direction:column;gap:1rem">
+        <div id="maindiv" style="display:flex;flex-direction:column;gap:1rem">
             <form id="myform" action="javascript:;">
                 <label>
                     <div>Name</div>
                     <div style="display:flex;flex-wrap:wrap;flex-direction:row">
-                        <div style="flex:1"><input required type="text" name="name" style="font-size:3rem;width:100%" /></div>
+                        <div style="flex:1"><input id="nameinput" required type="text" name="name" style="font-size:3rem;width:100%" /></div>
                     </div>
                 </label>
                 <label>
@@ -35,19 +35,46 @@ function entergamecode() {
             </div>
         </div>
     </div></div>`;
+
+    const maindiv: HTMLDivElement = rootel.querySelector("#maindiv")!;
+    const nameinput: HTMLInputElement = rootel.querySelector("#nameinput")!;
+    nameinput.value = getLocalStorage(localstorage_name) ?? "";
+    const current_game = getLocalStorage(localstorage_current_game);
+    if(current_game != null) {
+        const cginfo = JSON.parse(current_game) as LocalstorageCurrentGame;
+        const reconnectinfo = document.createElement("div");
+        reconnectinfo.innerHTML = `<div style="background-color:#ffe294">
+            <div>You're in a game.</div>
+            <div><button id="reconbtn">Reconnect</button></div>
+        </div>`;
+        maindiv.insertBefore(reconnectinfo, maindiv.firstChild);
+        const reconbtn: HTMLButtonElement = reconnectinfo.querySelector("#reconbtn")!;
+        reconbtn.onclick = () => {
+            connect(cginfo.player_id, cginfo.game_id);
+        };
+    }
+
     const formel: HTMLFormElement = rootel.querySelector("#myform")!;
     formel.addEventListener("submit", e => {
         e.preventDefault();
         const data = new FormData(e.target as any);
         const name = data.get("name") as string;
-        const code = (data.get("code") as string).toUpperCase();
+        const code = data.get("code") as string;
         console.log(name, code);
 
+        removeLocalStorage(localstorage_current_game);
+        setLocalStorage(localstorage_name, name);
         waitpage();
         connect(name, code);
     });
 }
 function handleMessage(msg: BroadcastMsg) {
+    if(msg.kind === "game_info") {
+        setLocalStorage(localstorage_current_game, JSON.stringify({
+            game_id: msg.game_id,
+            player_id: msg.player_id,
+        } satisfies LocalstorageCurrentGame));
+    }
     if(msg.kind === "choose_palettes_and_ready") {
         choosepalettesandready();
     }else if(msg.kind === "show_prompt_sel") {
@@ -126,6 +153,7 @@ function showdrawsent() {
     </div></div>`;
 }
 function showend() {
+    removeLocalStorage(localstorage_current_game);
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
         <div style="display:flex;flex-direction:column;gap:1rem">
             <div>Game end.</div>
@@ -252,7 +280,6 @@ function showreviewreveal(frameset: FrameSet, ready: boolean) {
     root_group.appendChild(animation);
 }
 
-entergamecode();
 const demo_frames: Frame[] = [
     {
         value: "{\"undo_strokes\":[{\"points\":[[322,283],[328,264],[341,243],[363,219],[396,195],[437,179],[480,172],[524,170],[571,181],[611,203],[645,231],[671,265],[691,306],[705,352],[713,403],[717,458],[717,513],[709,567],[697,609],[677,644],[654,666],[627,682],[601,692],[572,699],[536,703],[500,705],[464,699],[429,685],[401,671],[378,655],[358,640],[343,623],[329,601],[320,579],[312,556],[307,535],[302,513],[300,490],[299,467],[299,445],[298,425],[298,407],[299,388],[303,370],[311,352],[319,335],[326,322],[331,312],[336,299],[338,288],[339,279],[339,276],[341,274],[343,272],[345,271],[348,271],[351,271],[353,273],[355,275],[356,278],[356,281],[355,283],[354,286],[351,287],[349,288],[346,288],[343,287],[341,285],[339,283],[339,280],[339,277],[340,275],[342,273],[344,271],[347,271],[350,271],[353,272],[355,274],[356,277],[356,280],[356,280],[355,294],[352,304],[344,319],[338,329],[331,341],[324,357],[316,373],[312,389],[311,407],[311,425],[311,445],[311,467],[312,489],[314,510],[319,532],[324,552],[331,574],[340,594],[352,615],[366,630],[384,644],[407,660],[434,673],[466,687],[500,692],[534,690],[569,687],[596,680],[621,671],[645,657],[666,637],[685,606],[696,565],[704,513],[704,459],[701,405],[693,356],[680,312],[661,273],[637,241],[605,214],[568,193],[524,183],[482,184],[441,191],[404,205],[373,228],[353,250],[342,269],[336,287],[335,289],[334,290],[333,291],[331,292],[330,292],[328,292],[326,292],[325,291],[323,290],[322,288],[322,287],[322,285],[322,283]],\"color_index\":1}],\"redo_strokes\":[],\"background_color_index\":2}",
@@ -277,4 +304,6 @@ if(location.hash === "#demo/drawpage") {
         images: [...demo_frames, ...demo_frames],
         prompt: "A quick brown fox jumps over a lazy dog",
     }, false);
+}else{
+    entergamecode();
 }
