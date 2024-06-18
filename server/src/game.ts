@@ -280,7 +280,7 @@ export function catchupPlayer(send: SendCB, gameid: GameID, playerid: PlayerID) 
     }else if(game.state === "REVIEW_REVEAL") {
         send(pl.id, {
             kind: "review_reveal",
-            animation: game.frames[game.review_frame_num!].images.map(img => img.value),
+            animation: game.frames[game.review_frame_num!].images,
             ready: pl.ready,
         });
     }else assertNever(game.state);

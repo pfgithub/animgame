@@ -7,7 +7,6 @@ const IMGW = 1000;
 const IMGH = 1000;
 
 type Cfg = {
-    palette: Palette,
     line_width: number,
     color: string,
     background: string,
@@ -27,6 +26,40 @@ type ImgSrlz = {
     background_color_index: number,
 };
 
+export function drawcanvas(): SVGSVGElement {
+    const mysvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    mysvg.setAttribute("style", "display:block;aspect-ratio:1 / 1;width:100%");
+    mysvg.setAttribute("viewBox", "0 0 "+IMGW+" "+IMGH); // "viewBox" is case-sensitive in js but not html
+
+    return mysvg;
+}
+
+function updatePath(path: SVGPathElement, stroke: StrokeSrlz) {
+    (path as any).__data_rsrlz = stroke;
+    path.setAttribute("d", getSvgPathFromStroke(stroke.points));
+};
+function unsrlzStroke(stroke: StrokeSrlz, palette: Palette): SVGPathElement {
+    const renderv = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    renderv.setAttribute("fill", palette[stroke.color_index]);
+    updatePath(renderv, stroke);
+    return renderv;
+};
+function unsrlzImg(parent: SVGElement, srlz: ImgSrlz, palette: Palette): SVGPathElement[] {
+    // 1. convert strokes
+    const vstrokes = srlz.undo_strokes.map(stroke => unsrlzStroke(stroke, palette));
+    // 2. apply all undo strokes
+    for(const stroke of vstrokes) {
+        parent.appendChild(stroke);
+    }
+
+    return vstrokes;
+}
+const rendersrlzos = (srlz: ImgSrlz) => {
+    const res_group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    res_group.style.opacity = "0.5";
+    
+};
+
 export function drawpage(context: ContextFrames): HTMLDivElement {
     // TODO: save in local storage in case you reload
     // TODO: we're going to load arbitrary lines so make sure we can
@@ -36,8 +69,8 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
 
     const rootel = document.createElement("div");
 
+    const palette: Palette = palettes[context.palette]!;
     let cfg = signal<Cfg>({
-        palette: palettes[context.palette]!,
         line_width: 20,
         color: "",
         background: "",
@@ -50,11 +83,11 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     let linesv: SVGPathElement[] = [];
     let linesr: SVGPathElement[] = [];
     {
-        cfg.value.color = cfg.value.palette[0];
+        cfg.value.color = palette[0];
         const lastcannedframe = context.frames[context.frames.length - 1]?.value;
-        cfg.value.background = cfg.value.palette[
+        cfg.value.background = palette[
             lastcannedframe != null ? (JSON.parse(lastcannedframe) as ImgSrlz).background_color_index :
-            cfg.value.palette.length - 1
+            palette.length - 1
         ];
     }
 
@@ -68,9 +101,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
             </div>
             <div>
                 <div id="frametabs" style="display:flex"></div>
-                <div style="border: 4px solid gray;display:block">
-                    <svg style="display:block;aspect-ratio:1 / 1;width:100%" id="mysvg" viewbox="0 0 ${IMGW} ${IMGH}"></svg>
-                </div>
+                <div id="svgcontainer" style="border: 4px solid gray;display:block"></div>
             </div>
             <div id="buttonshere" style="display:flex;flex-wrap:wrap;flex-direction:row;gap:0.5rem">
             </div>
@@ -133,7 +164,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         const framev: ImgSrlz = (cannedframe != null ? JSON.parse(cannedframe) : null) ?? cfg.value.uncanned_frames[i - context.frames.length] ?? ({
             undo_strokes: [],
             redo_strokes: [],
-            background_color_index: cfg.value.palette.indexOf(cfg.value.background),
+            background_color_index: palette.indexOf(cfg.value.background),
         } satisfies ImgSrlz);
         if(onionskin) rendersrlzos(framev); else rendersrlz(framev);
         cfg.update();
@@ -167,7 +198,9 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         // localStorage.setItem("animgame-saved-drawing", JSON.stringify(srlz()));
         // console.log("saved");
     }));
-    const mysvg: SVGElement = rootel.querySelector("#mysvg")!;
+    const svgcontainer: SVGElement = rootel.querySelector("#svgcontainer")!;
+    const mysvg: SVGSVGElement = drawcanvas();
+    svgcontainer.appendChild(mysvg);
     onupdateAndNow(cfg, () => {
         mysvg.style.backgroundColor = cfg.value.background;
     });
@@ -193,7 +226,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         linesv.push(popv);
         mysvg.appendChild(popv);
     }, dset);
-    for(const color of cfg.value.palette) {
+    for(const color of palette) {
         addColorButton(mybuttons, color, cfg, dset);
     }
     addOtherButton(mybuttons, "set bg", () => {
@@ -235,7 +268,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         const srlzres: ImgSrlz = {
             undo_strokes: [],
             redo_strokes: [],
-            background_color_index: cfg.value.palette.indexOf(cfg.value.background),
+            background_color_index: palette.indexOf(cfg.value.background),
         };
         const as = (a: StrokeSrlz[], b: SVGPathElement[]) => {
             for(const stroke of b) {
@@ -250,38 +283,22 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         return srlzres;
     }
     // window.__srlz = () => JSON.stringify(srlz());
-    const unsrlzStroke = (stroke: StrokeSrlz): SVGPathElement => {
-        const renderv = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        renderv.setAttribute("fill", cfg.value.palette[stroke.color_index]);
-        updatePath(renderv, stroke);
-        return renderv;
-    };
-    const updatePath = (path: SVGPathElement, stroke: StrokeSrlz) => {
-        (path as any).__data_rsrlz = stroke;
-        path.setAttribute("d", getSvgPathFromStroke(stroke.points));
-    };
     const rendersrlzos = (srlz: ImgSrlz) => {
         const res_group = document.createElementNS("http://www.w3.org/2000/svg", "g");
         res_group.style.opacity = "0.5";
-        // 1. convert strokes
-        const vstrokes = srlz.undo_strokes.map(stroke => unsrlzStroke(stroke));
-        // 2. apply all undo strokes
-        for(const stroke of vstrokes) {
-            res_group.appendChild(stroke);
-        }
+
+        unsrlzImg(res_group, srlz, palette);
+
         // 3. append group
         mysvg.appendChild(res_group);
     };
     const rendersrlz = (srlz: ImgSrlz) => {
         // 1. update undo/redo lists
-        linesv = srlz.undo_strokes.map(stroke => unsrlzStroke(stroke));
-        linesr = srlz.redo_strokes.map(stroke => unsrlzStroke(stroke));
-        // 2. apply all undo strokes
-        for(const stroke of linesv) {
-            mysvg.appendChild(stroke);
-        }
-        // 3. set background color
-        cfg.value.background = cfg.value.palette[srlz.background_color_index];
+        linesv = unsrlzImg(mysvg, srlz, palette);
+        linesr = srlz.redo_strokes.map(stroke => unsrlzStroke(stroke, palette));
+
+        // 2. set background color
+        cfg.value.background = palette[srlz.background_color_index];
         cfg.update();
     };
 
@@ -302,9 +319,9 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         const stroke_color = cfg.value.color;
         const line_width = cfg.value.line_width;
         const renderv = unsrlzStroke({
-            color_index: cfg.value.palette.indexOf(stroke_color),
+            color_index: palette.indexOf(stroke_color),
             points: [],
-        });
+        }, palette);
         mysvg.appendChild(renderv);
 
         const updaterender = (size: Vec2) => {
@@ -315,7 +332,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
             stroke = stroke.map((pt): Vec2 => [Math.round(pt[0] / size[0] * IMGW), Math.round(pt[1] / size[1] * IMGH)]);
             updatePath(renderv, {
                 points: stroke,
-                color_index: cfg.value.palette.indexOf(stroke_color),
+                color_index: palette.indexOf(stroke_color),
             });
         };
 

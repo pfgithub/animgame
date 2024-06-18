@@ -26,7 +26,7 @@ export type BroadcastMsg = {
     kind: "show_frame_accepted",
 } | {
     kind: "review_reveal",
-    animation: string[],
+    animation: Frame[],
     ready: boolean,
 } | {
     kind: "ready_ack",
