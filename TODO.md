@@ -10,6 +10,8 @@ TODO:
 - [x] Support browsers where localStorage throws an error
 - [x] Reconnect by reloading
 - [x] Display errors
+- [ ] Review guess logic in game.ts
+- [ ] Review guess screen
 - [ ] Keep in-progress drawings on reload
 - [ ] Keep in-progress text fields on reload
 - [ ] Display errors in a toast
@@ -20,10 +22,6 @@ TODO:
        We can use an access token in localstorage for that.
   - We can store a list of played game ids, and then the server can
     store game ids -> game overview screen
-
-Future:
-- [ ] Review guess logic in game.ts
-- [ ] Review guess screen
 
 More games to make:
 - Linegame. On your turn, you can draw one line. End.
