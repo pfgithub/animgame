@@ -110,7 +110,7 @@ export function choosePalette(send: SendCB, gameid: GameID, playerid: PlayerID, 
     }
     if(pl == null) throw new MsgError("You are not in the game");
     pl.selected_palette = palette;
-    send(gameid, {kind: "update_taken_palettes"});
+    send(gameid, {kind: "update_taken_palettes", yoursel: palette, taken: game.players.filter(p => p.selected_palette != null).map(p => p.selected_palette!)});
 }
 export function markReady(send: SendCB, gameid: GameID, playerid: PlayerID, value: boolean) {
     const game = games.get(gameid);
@@ -286,7 +286,7 @@ export function catchupPlayer(send: SendCB, gameid: GameID, playerid: PlayerID) 
     }
 
     if(game.state === "ALLOW_JOINING") {
-        send(pl.id, {kind: "choose_palettes_and_ready"});
+        send(pl.id, {kind: "choose_palettes_and_ready", taken_palettes: game.players.filter(p => p.selected_palette != null).map(p => p.selected_palette!)});
     }else if(game.state === "CHOOSE_PROMPTS") {
         send(pl.id, {kind: "show_prompt_sel"});
     }else if(game.state === "DRAW_FRAME") {

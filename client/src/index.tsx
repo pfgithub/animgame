@@ -1,7 +1,7 @@
 import {palettes, type BroadcastMsg, type Frame, type FrameSet, type ImgSrlz} from "../../shared/shared.ts";
 import { connect, disconnect, sendMessage } from "./connection.tsx";
 import { drawcanvas, drawpage, unsrlzImg } from "./drawpage.tsx";
-import { removeLocalStorage, getLocalStorage, localstorage_current_game, localstorage_name, replacepage, rootel, setLocalStorage, wsEventHandler, type LocalstorageCurrentGame } from "./util.tsx";
+import { removeLocalStorage, getLocalStorage, localstorage_current_game, localstorage_name, replacepage, rootel, setLocalStorage, wsEventHandler, type LocalstorageCurrentGame, signal, onupdateAndNow } from "./util.tsx";
 
 // should we have each person make one frame or two frames?
 // two frames maybe
@@ -79,7 +79,7 @@ function handleMessage(msg: BroadcastMsg) {
     }else if(msg.kind === "error") {
         alert("Error: "+msg.message);
     }else if(msg.kind === "choose_palettes_and_ready") {
-        choosepalettesandready();
+        choosepalettesandready(msg.taken_palettes);
     }else if(msg.kind === "show_prompt_sel") {
         showpromptsel();
     }else if(msg.kind === "show_prompt_accepted") {
@@ -110,40 +110,59 @@ function showfullanimation(frames: string[]) {
     // - "Next" button that is like the "Ready" button, everyone
     //   has to press it
 }
-function choosepalettesandready() {
-    rootel.innerHTML = `<div style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+function choosepalettesandready(in_taken_palettes: number[]) {
+    let your_palette = -1;
+    const taken_palettes = signal(in_taken_palettes);
+    rootel.innerHTML = `<div id="mainel" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
         <div id="readycontainer" style="display:flex;flex-direction:column;gap:1rem">
             <div>ChoosePalettesAndReady</div>
             <div id="palettes" style="display:flex;flex-direction:column;gap:0.25rem"></div>
         </div>
     </div></div>`;
+    const mainel: HTMLDivElement = rootel.querySelector("#mainel")!;
+    mainel.appendChild(wsEventHandler(ev => {
+        if(ev.kind === "update_taken_palettes") {
+            taken_palettes.value = ev.taken;
+            your_palette = ev.yoursel;
+            taken_palettes.update();
+        }
+    }))
     const palettesel: HTMLDivElement = rootel.querySelector("#palettes")!;
     const readycontainer: HTMLButtonElement = rootel.querySelector("#readycontainer")!;
     readycontainer.appendChild(makereadybtn("Ready", false));
     for(const [i, palette] of palettes.entries()) {
         const palettebtn = document.createElement("button");
-        palettebtn.setAttribute("style", "border-radius:1rem;display:flex;width:100%;border:none;background-color:transparent;padding:0");
+        palettebtn.setAttribute("style", "display:flex;width:100%;border:none;background-color:transparent;padding:0");
         palettebtn.innerHTML = `
-            <div style="flex:1;display:flex;border:2px solid gray">
-                <div class="_here" style="border:2px solid white;flex:1;display:flex"></div>
+            <div class="_proot" style="border-radius:1rem;flex:1;display:flex;border:2px solid gray">
+                <div class="_here" style="border-radius:calc(1rem - 2px);border:2px solid white;flex:1;display:flex"></div>
             </div>
         `;
         palettebtn.onclick = () => {
             sendMessage({kind: "choose_palette", palette: i});
         };
+        const proot: HTMLDivElement = palettebtn.querySelector("._proot")!;
         const pbin: HTMLDivElement = palettebtn.querySelector("._here")!;
+        onupdateAndNow(taken_palettes, () => {
+            const v = taken_palettes.value.includes(i);
+            const m = i === your_palette;
+            palettebtn.disabled = v && !m;
+            proot.style.borderColor = v || m ? "transparent" : "gray";
+            pbin.style.borderColor = v && !m ? "gray" : "transparent";
+            proot.style.outline = m ? "2px solid red" : "";
+        });
         for(let i = 0; i < palette.length; i++) {
             const colorprev = palette[i - 1] ?? "transparent";
             const color = palette[i];
             {
                 const palettesquare = document.createElement("div");
                 palettesquare.setAttribute("style", "height:3rem;flex:1;background-color:"+colorprev);
-                palettesquare.innerHTML = `<div style="width:100%;height:100%;background-color:${color};border-radius:1rem 0 0 1rem"></div>`;
+                palettesquare.innerHTML = `<div style="width:100%;height:100%;background-color:${color};border-radius:calc(1rem - 4px) 0 0 calc(1rem - 4px)"></div>`;
                 pbin.appendChild(palettesquare);
             }
             {
                 const palettesquare = document.createElement("div");
-                palettesquare.setAttribute("style", "height:3rem;flex:1;background-color:"+color+";"+(i === palette.length - 1 ? "border-radius:0 1rem 1rem 0" : ""));
+                palettesquare.setAttribute("style", "height:3rem;flex:1;background-color:"+color+";"+(i === palette.length - 1 ? "border-radius:0 calc(1rem - 4px) calc(1rem - 4px) 0" : ""));
                 pbin.appendChild(palettesquare);
             }
         }
@@ -295,7 +314,9 @@ const demo_frames: Frame[] = [
         artist: "una" as any,
     }
 ];
-if(location.hash === "#demo/drawpage") {
+if(location.hash === "#demo/choosepalettesandready") {
+    choosepalettesandready([1, 6, 4]);
+}else if(location.hash === "#demo/drawpage") {
     replacepage(drawpage({
         palette: 6,
         // prompt: "The quick brown fox jumps over a lazy dog",

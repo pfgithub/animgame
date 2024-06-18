@@ -10,6 +10,7 @@ TODO:
 - [x] Support browsers where localStorage throws an error
 - [x] Reconnect by reloading
 - [x] Display errors
+- [x] Indicate your and other people's selections in palettes
 - [ ] Review guess logic in game.ts
   - We can do the dixit/jackbox thing for guesses:
   - Everyone writes their prompt (except the first drawer
@@ -27,6 +28,9 @@ TODO:
        We can use an access token in localstorage for that.
   - We can store a list of played game ids, and then the server can
     store game ids -> game overview screen
+
+Known issues:
+- Because we're using websockets instead of UDP, outdated packets will queue up to be sent. This can be mitigated by checking the websocket fill amount in bun maybe? It's also probably not a problem with such a low volume of data.
 
 More games to make:
 - Linegame. On your turn, you can draw one line. End.

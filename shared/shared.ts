@@ -14,6 +14,7 @@ export type ContextFrames = {
 };
 export type BroadcastMsg = {
     kind: "choose_palettes_and_ready",
+    taken_palettes: number[],
 } | {
     kind: "show_prompt_sel",
 } | {
@@ -42,7 +43,8 @@ export type BroadcastMsg = {
     message: string,
 } | {
     kind: "update_taken_palettes",
-    // TODO
+    taken: number[],
+    yoursel: number,
 };
 export type RecieveMessage = {
     kind: "mark_ready",
