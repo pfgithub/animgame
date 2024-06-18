@@ -104,8 +104,9 @@ export function choosePalette(send: SendCB, gameid: GameID, playerid: PlayerID, 
     if((palette |0) !== palette || palette < 0 || palette >= palettes.length) throw new MsgError("Palette out of range");
     let pl: GamePlayer | null = null;
     for(const player of game.players) {
-        if(player.id === playerid) pl = player;
-        if(player.selected_palette == palette) throw new MsgError("Someone else already chose that palette");
+        if(player.id === playerid) {
+            pl = player;
+        }else if(player.selected_palette == palette) throw new MsgError("Someone else already chose that palette");
     }
     if(pl == null) throw new MsgError("You are not in the game");
     pl.selected_palette = palette;
