@@ -40,6 +40,7 @@ function updatePath(path: SVGPathElement, stroke: StrokeSrlz) {
 };
 function unsrlzStroke(stroke: StrokeSrlz, palette: Palette): SVGPathElement {
     const renderv = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    // renderv.setAttribute("style", "shape-rendering:crispEdges"); // I think this looks cool but it's a little misleading
     renderv.setAttribute("fill", palette[stroke.color_index]);
     updatePath(renderv, stroke);
     return renderv;
