@@ -44,7 +44,9 @@ export type BroadcastMsg = {
 } | {
     kind: "update_taken_palettes",
     taken: number[],
-    yoursel: number,
+} | {
+    kind: "confirm_your_taken_palette",
+    palette: number,
 };
 export type RecieveMessage = {
     kind: "mark_ready",

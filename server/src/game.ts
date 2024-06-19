@@ -110,7 +110,8 @@ export function choosePalette(send: SendCB, gameid: GameID, playerid: PlayerID, 
     }
     if(pl == null) throw new MsgError("You are not in the game");
     pl.selected_palette = palette;
-    send(gameid, {kind: "update_taken_palettes", yoursel: palette, taken: game.players.filter(p => p.selected_palette != null).map(p => p.selected_palette!)});
+    send(playerid, {kind: "confirm_your_taken_palette", palette});
+    send(gameid, {kind: "update_taken_palettes", taken: game.players.filter(p => p.selected_palette != null).map(p => p.selected_palette!)});
 }
 export function markReady(send: SendCB, gameid: GameID, playerid: PlayerID, value: boolean) {
     const game = games.get(gameid);

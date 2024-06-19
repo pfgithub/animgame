@@ -123,7 +123,9 @@ function choosepalettesandready(in_taken_palettes: number[]) {
     mainel.appendChild(wsEventHandler(ev => {
         if(ev.kind === "update_taken_palettes") {
             taken_palettes.value = ev.taken;
-            your_palette = ev.yoursel;
+            taken_palettes.update();
+        }else if(ev.kind === "confirm_your_taken_palette") {
+            your_palette = ev.palette;
             taken_palettes.update();
         }
     }))
@@ -147,6 +149,7 @@ function choosepalettesandready(in_taken_palettes: number[]) {
             const v = taken_palettes.value.includes(i);
             const m = i === your_palette;
             palettebtn.disabled = v && !m;
+            palettebtn.style.opacity = v && !m ? "0.2" : "";
             proot.style.borderColor = v || m ? "transparent" : "gray";
             pbin.style.borderColor = v && !m ? "gray" : "transparent";
             proot.style.outline = m ? "2px solid red" : "";
