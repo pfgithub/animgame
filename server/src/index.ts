@@ -1,5 +1,5 @@
 import { join, resolve } from "path";
-import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady, postPrompt, postFrames, saveGame, choosePalette } from "./game";
+import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady, postPrompt, postFrames, saveGame, choosePalette } from "./games/animgame";
 import type { BroadcastMsg, GameID, PlayerID, RecieveMessage } from "../../shared/shared";
 
 // consider hono so we can run on cloudflare pages?

@@ -1,4 +1,4 @@
-import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type FrameSet, type GameID, type PlayerID} from "../../shared/shared.ts";
+import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type FrameSet, type GameID, type PlayerID} from "../../../shared/shared.ts";
 
 export class MsgError extends Error {
     constructor(msg: string) {
