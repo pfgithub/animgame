@@ -26,7 +26,7 @@ type GameStateEnum = (
 type GameState = {
     config: {
         frame_count: number,
-        draw_your_own_prompt: boolean,
+        draw_your_own_prompt: "NO" | "LAST" | "FIRST",
     },
     state: GameStateEnum,
     draw_frame_num?: number,
@@ -40,7 +40,7 @@ export function createGame(): GameState {
     return {
         config: {
             frame_count: 2,
-            draw_your_own_prompt: false,
+            draw_your_own_prompt: "LAST",
         },
         state: "ALLOW_JOINING",
         players: [],
@@ -136,7 +136,7 @@ export function postPrompt(game: GameState, send: SendCB, gameid: GameID, player
     }
 }
 function startDrawRound(send: SendCB, gameid: GameID, game: GameState, num: number) {
-    if(num > game.players.length - 1) {
+    if(num > game.players.length - (game.config.draw_your_own_prompt === "NO" ? 1 : 0)) {
         startReview(send, gameid, game);
         return;
     }
@@ -175,10 +175,11 @@ export function getContextFrames(game: GameState, gameid: GameID, playerid: Play
         throw new MsgError("Frames were already submitted");
     }
     const resframes = fset.images.slice(fset.images.length - game.config.frame_count);
+    const owner = game.players[frameindex]!;
     return {
-        palette: game.players[frameindex].selected_palette!,
+        palette: owner.selected_palette!,
         start_frame_index: fset.images.length - resframes.length,
-        prompt: resframes.length === 0 ? fset.prompt : undefined,
+        prompt: resframes.length === 0 || owner.id === playerid ? fset.prompt : undefined,
         frames: resframes,
         ask_for_frames: game.config.frame_count,
     };
@@ -250,7 +251,7 @@ function assert(v: boolean): void {
 }
 
 function modframes(game: GameState, playerindex: number): number {
-    return (playerindex + ((game.draw_frame_num ?? 0) -+ game.config.draw_your_own_prompt)) % game.frames.length;
+    return (playerindex + ((game.draw_frame_num ?? 0) -+ (game.config.draw_your_own_prompt === "FIRST"))) % game.frames.length;
 }
 
 export type Ctx = {
