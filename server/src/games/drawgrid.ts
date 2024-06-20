@@ -18,8 +18,8 @@
 //   or just one, combined draw/guess
 // - show end screen with scores
 
-import type { PlayerID, RecieveMessage } from "../../../shared/shared";
-import { MsgError, baseChoosePalette, baseMarkReady, type GameInterface } from "../gamelib";
+import { shuffle, type PlayerID, type RecieveMessage } from "../../../shared/shared";
+import { MsgError, baseChoosePalette, baseFillPalettes, baseMarkReady, type GameCtx, type GameCtxNoPlayer, type GameInterface } from "../gamelib";
 
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 20;
@@ -44,6 +44,7 @@ type Player = {
     id: PlayerID,
     name: string,
     selected_palette?: number,
+    prompt_choices?: string[],
     prompt?: string,
     drawing?: string,
     points: number,
@@ -51,19 +52,55 @@ type Player = {
 };
 type GameState = {
     config: {
-        word_list: string[],
+        word_choices: number,
     },
     state: GameStateEnum,
     players: Player[],
 };
 
 
-const default_word_list = ["apple", "pear", "bananna"];
+const default_word_list = (await Bun.file("data/drawgrid_words.txt").text()).split("\n").map(l => l.trim()).filter(l => l);
+
+function startGame(ctx: GameCtxNoPlayer<GameState>): void {
+    shuffle(ctx.game.players);
+    baseFillPalettes(ctx.game);
+    ctx.game.state = "CHOOSE_PROMPT";
+    const used_words = new Set<string>();
+    for(const player of ctx.game.players) {
+        const res_words: string[] = [];
+        let i = 0;
+        while(res_words.length < ctx.game.config.word_choices) {
+            i += 1;
+
+            const random_word = default_word_list[Math.random() * default_word_list.length |0];
+            if(used_words.has(random_word) && i < 100) continue;
+            used_words.add(random_word);
+            res_words.push(random_word);
+        }
+        player.prompt_choices = res_words;
+    }
+    catchupAll(ctx);
+}
+function startDrawPhase(ctx: GameCtxNoPlayer<GameState>): void {
+    ctx.game.state = "DRAW";
+    catchupAll(ctx);
+}
+function startGuessPhase(ctx: GameCtxNoPlayer<GameState>): void {
+    ctx.game.state = "GRID_AND_GUESS";
+    catchupAll(ctx);
+}
+function catchupAll(ctx: GameCtxNoPlayer<GameState>): void {
+    for(const player of ctx.game.players) {
+        drawgrid_interface.catchup({...ctx, playerid: player.id});
+    }
+}
 
 export const drawgrid_interface: GameInterface<GameState> = {
     create(): GameState {
         return {
-            config: {word_list: default_word_list},
+            config: {
+                word_choices: 3,
+            },
             state: "JOIN_AND_PALETTE",
             players: [],
         };
@@ -86,10 +123,33 @@ export const drawgrid_interface: GameInterface<GameState> = {
     catchup(ctx) {
         if(ctx.game.state === "JOIN_AND_PALETTE") {
             ctx.send(ctx.playerid, {kind: "choose_palettes_and_ready", taken_palettes: ctx.game.players.filter(pl => pl.selected_palette != null).map(pl => pl.selected_palette!)});
+        }else if(ctx.game.state === "CHOOSE_PROMPT") {
+            const player = ctx.game.players.find(pl => pl.id === ctx.playerid);
+            if(player == null) throw new MsgError("Player not found");
+            ctx.send(ctx.playerid, {kind: "choose_prompt", choices: player.prompt_choices!, choice: player.prompt});
+        }else if(ctx.game.state === "DRAW") {
+            const player = ctx.game.players.find(pl => pl.id === ctx.playerid);
+            if(player == null) throw new MsgError("Player not found");
+            if(player.drawing != null) {
+                ctx.send(ctx.playerid, {kind: "show_frame_accepted"});
+            }else{
+                ctx.send(ctx.playerid, {kind: "show_draw_frame", context: {
+                    start_frame_index: 0,
+                    palette: player.selected_palette!,
+                    frames: [],
+                    ask_for_frames: 1,
+                    prompt: player.prompt!,
+                }});
+            }
+        }else if(ctx.game.state === "GRID_AND_GUESS") {
+            ctx.send(ctx.playerid, {kind: "grid_and_guess"});
         }else throw new MsgError("TODO impl catchup for state: "+ctx.game.state);
     },
     onDisconnect(ctx) {
-        throw new MsgError("TODO impl disconnect");
+        if(ctx.game.state === "JOIN_AND_PALETTE") {
+            // remove the player
+            ctx.game.players = ctx.game.players.filter(pl => pl.id !== ctx.playerid);
+        }
     },
     onMessage(ctx, msg) {
         if(msg.kind === "choose_palette") {
@@ -99,9 +159,32 @@ export const drawgrid_interface: GameInterface<GameState> = {
             if(baseMarkReady(ctx, msg.value)) {
                 if(ctx.game.state === "JOIN_AND_PALETTE") {
                     if(ctx.game.players.length >= MIN_PLAYERS) {
-                        throw new MsgError("TODO start the game");
+                        startGame(ctx);
                     }
                 }
+            }
+        }else if(msg.kind === "choose_prompt") {
+            if(ctx.game.state !== "CHOOSE_PROMPT") throw new MsgError("You cannot choose your prompt at this time.");
+            const player = ctx.game.players.find(pl => pl.id === ctx.playerid);
+            if(player == null) throw new MsgError("Player not found");
+            if(!player.prompt_choices!.includes(msg.choice)) throw new MsgError("Prompt not found");
+            player.prompt = msg.choice;
+
+            ctx.send(ctx.playerid, {kind: "choose_prompt_ack", choice: player.prompt});
+            if(ctx.game.players.every(player => player.prompt != null)) {
+                startDrawPhase(ctx);
+            }
+        }else if(msg.kind === "submit_animation") {
+            if(ctx.game.state !== "DRAW") throw new MsgError("You cannot submit an animation at this time.");
+            const player = ctx.game.players.find(pl => pl.id === ctx.playerid);
+            if(player == null) throw new MsgError("Player not found");
+            if(msg.frames.length !== 1) throw new MsgError("Expected one frame");
+            player.drawing = msg.frames[0]!;
+
+            if(ctx.game.players.every(player => player.drawing != null)) {
+                startGuessPhase(ctx);
+            }else{
+                drawgrid_interface.catchup(ctx);
             }
         }else{
             throw new MsgError("Command not supported: `"+(msg as RecieveMessage).kind+"`");

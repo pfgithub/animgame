@@ -47,6 +47,15 @@ export type BroadcastMsg = {
 } | {
     kind: "confirm_your_taken_palette",
     palette: number,
+} | {
+    kind: "choose_prompt",
+    choices: string[],
+    choice?: string,
+} | {
+    kind: "choose_prompt_ack",
+    choice: string,
+} | {
+    kind: "grid_and_guess",
 };
 export type RecieveMessage = {
     kind: "mark_ready",
@@ -60,6 +69,9 @@ export type RecieveMessage = {
 } | {
     kind: "choose_palette",
     palette: number,
+} | {
+    kind: "choose_prompt",
+    choice: string,
 };
 
 export type FrameSet = {
@@ -91,3 +103,14 @@ export type StrokeSrlz = {
 };
 
 export type Vec2 = [number, number];
+
+
+export function shuffle<T>(array: T[]) {
+    let currentIndex = array.length;
+  
+    while (currentIndex != 0) {
+        let randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+}

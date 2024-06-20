@@ -37,6 +37,25 @@ export function baseChoosePalette(ctx: GameCtx<GameWithPlayersWithPalettes>, pal
     ctx.send(ctx.gameid, {kind: "update_taken_palettes", taken: ctx.game.players.filter(p => p.selected_palette != null).map(p => p.selected_palette!)});
     ctx.send(ctx.playerid, {kind: "confirm_your_taken_palette", palette});
 }
+export function baseFillPalettes(game: GameWithPlayersWithPalettes): void {
+    const used_palettes = new Set<number>();
+    for(const player of game.players) {
+        if(player.selected_palette != null) {
+            used_palettes.add(player.selected_palette);
+        }
+    }
+    for(const player of game.players) {
+        // pick a random palette for any indecisive ppl
+        if(player.selected_palette == null) {
+            // try 10 times, allow duplication if it fails.
+            for(let i = 0; i < 10; i++) {
+                const pval = (Math.random() * palettes.length) |0;
+                player.selected_palette = pval;
+                if(!used_palettes.has(pval)) break;
+            }
+        }
+    }
+}
 /// returns true if all players are ready
 export function baseMarkReady(ctx: GameCtx<GameWithPlayersWithReady>, value: boolean): boolean {
     const pl = ctx.game.players.find(pl => pl.id === ctx.playerid);
@@ -50,11 +69,16 @@ export function baseMarkReady(ctx: GameCtx<GameWithPlayersWithReady>, value: boo
     }
     return false;
 }
+export function baseResetReady(game: GameWithPlayersWithReady): void {
+    for(const player of game.players) player.ready = false;
+}
 
-export type GameCtx<T> = {
+export type GameCtxNoPlayer<T> = {
     send: SendCB,
     gameid: GameID,
     game: T,
+};
+export type GameCtx<T> = GameCtxNoPlayer<T> & {
     playerid: PlayerID,
 };
 export interface GameInterface<T> {

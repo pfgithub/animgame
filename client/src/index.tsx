@@ -69,8 +69,6 @@ function entergamecode() {
     });
 }
 function handleMessage(msg: BroadcastMsg) {
-    console.log("<- ", msg);
-
     if(msg.kind === "game_info") {
         setLocalStorage(localstorage_current_game, JSON.stringify({
             game_id: msg.game_id,
@@ -90,6 +88,10 @@ function handleMessage(msg: BroadcastMsg) {
         showdrawsent();
     }else if(msg.kind === "review_reveal") {
         showreviewreveal(msg.frameset, msg.ready);
+    }else if(msg.kind === "choose_prompt") {
+        showchooseprompt(msg.choices, msg.choice);
+    }else if(msg.kind === "grid_and_guess") {
+        showgridandguess();
     }else if(msg.kind === "game_over") {
         disconnect();
         showend();
@@ -241,7 +243,6 @@ function makereadybtn(label: string, ready_state: boolean): HTMLButtonElement {
     }
     updateReadyBtn();
     readybtn.appendChild(wsEventHandler(ev => {
-        console.log("got wsev", ev);
         if(ev.kind === "ready_ack") {
             ready_state = ev.value;
             ready_sending = false;
@@ -307,6 +308,42 @@ function showreviewreveal(frameset: FrameSet, ready: boolean) {
     animation.setAttribute("repeatCount", "indefinite");
     animation.setAttribute("calcMode", "discrete");
     root_group.appendChild(animation);
+}
+function showchooseprompt(choices: string[], choice_initial?: string) {
+    const current_choice = signal(choice_initial);
+    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+        <div id="addbtns" style="display:flex;flex-direction:column;gap:1rem">
+            <div>ShowChoosePrompt</div>
+        </div>
+    </div></div>`;
+    const addbtns: HTMLDivElement = rootel.querySelector("#addbtns")!;
+    for(const choice of choices) {
+        const btnel = document.createElement("button");
+        btnel.textContent = choice;
+        onupdateAndNow(current_choice, () => {
+            const sel = current_choice.value === choice;
+            btnel.style.outline = sel ? "2px solid red" : "";
+        });
+        btnel.onclick = () => {
+            sendMessage({kind: "choose_prompt", choice});
+        };
+        addbtns.appendChild(btnel);
+    }
+    addbtns.appendChild(wsEventHandler(ev => {
+        if(ev.kind === "choose_prompt_ack") {
+            current_choice.value = ev.choice;
+            current_choice.update();
+        }
+    }));
+}
+function showgridandguess() {
+    // let's make this one a fullscreen ui
+    // image grid left, text chat right
+    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+        <div style="display:flex;flex-direction:column;gap:1rem">
+            <div>ShowGridAndGuess</div>
+        </div>
+    </div></div>`;
 }
 
 const demo_frames: Frame[] = [

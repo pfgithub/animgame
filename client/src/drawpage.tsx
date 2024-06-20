@@ -250,7 +250,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
             }
         }
 
-        if(!confirm("Really submit your animation?")) return;
+        if(!confirm("Really submit your "+(context.ask_for_frames === 1 ? "frame" : "frames")+"?")) return;
 
         // it's saved, send it off
         sendMessage({

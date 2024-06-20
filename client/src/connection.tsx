@@ -23,10 +23,12 @@ export function connect(name: string, code: string): void {
         const msg_data = e.data;
         if(typeof msg_data === "string") {
             const desrlz = JSON.parse(msg_data);
+            console.log("<- ", desrlz);
             handleMessage(desrlz);
         }
     });
     sendMessage = msg => {
+        console.log(" ->", msg);
         wss.send(JSON.stringify(msg));
     };
     disconnect = () => wss.close();

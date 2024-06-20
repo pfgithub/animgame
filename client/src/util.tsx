@@ -17,12 +17,14 @@ export function onupdateAndNow<T>(signal: Signal<T>, cb: () => void) {
 export function autosaveHandler(cb: () => void): HTMLDivElement {
     const el = document.createElement("div");
     el.setAttribute("class", "data-autosave_handler");
+    el.setAttribute("style", "display:none");
     (el as any).__autosave_handler = cb;
     return el;
 }
 export function wsEventHandler(cb: (ev: BroadcastMsg) => void): HTMLDivElement {
     const el = document.createElement("div");
     el.setAttribute("class", "data-wsevent_handler");
+    el.setAttribute("style", "display:none");
     (el as any).__wsevent_handler = cb;
     return el;
 }

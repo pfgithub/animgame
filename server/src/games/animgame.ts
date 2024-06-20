@@ -1,5 +1,5 @@
-import { palettes, type ContextFrames, type FrameSet, type GameID, type PlayerID, type RecieveMessage } from "../../../shared/shared.ts";
-import { MsgError, baseChoosePalette, baseMarkReady, type GameInterface, type SendCB } from "../gamelib.ts";
+import { palettes, shuffle, type ContextFrames, type FrameSet, type GameID, type PlayerID, type RecieveMessage } from "../../../shared/shared.ts";
+import { MsgError, baseChoosePalette, baseFillPalettes, baseMarkReady, baseResetReady, type GameInterface, type SendCB } from "../gamelib.ts";
 
 // TODO playtest for these numbers
 // & maybe for high player counts, each player only draws one frame
@@ -87,37 +87,12 @@ export function markReady(game: GameState, send: SendCB, gameid: GameID, playeri
         }
     }
 }
-function shuffle<T>(array: T[]) {
-    let currentIndex = array.length;
-  
-    while (currentIndex != 0) {
-        let randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex--;
-        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-    }
-}
 function startGame(send: SendCB, gameid: GameID, game: GameState) {
     // shuffle players
     shuffle(game.players);
 
     game.state = "CHOOSE_PROMPTS";
-    const used_palettes = new Set<number>();
-    for(const player of game.players) {
-        if(player.selected_palette != null) {
-            used_palettes.add(player.selected_palette);
-        }
-    }
-    for(const player of game.players) {
-        // pick a random palette for any indecisive ppl
-        if(player.selected_palette == null) {
-            // try 10 times, allow duplication if it fails.
-            for(let i = 0; i < 10; i++) {
-                const pval = (Math.random() * palettes.length) |0;
-                player.selected_palette = pval;
-                if(!used_palettes.has(pval)) break;
-            }
-        }
-    }
+    baseFillPalettes(game);
     game.frames = new Array(game.players.length).fill(0).map((_, i): FrameSet => {
         return {palette: game.players[i].selected_palette!, images: []};
     });
@@ -148,7 +123,7 @@ function startReview(send: SendCB, gameid: GameID, game: GameState) {
     reviewNext(send, gameid, game);
 }
 function reviewNext(send: SendCB, gameid: GameID, game: GameState) {
-    for(const player of game.players) player.ready = false;
+    baseResetReady(game);
     game.state = "REVIEW_REVEAL";
     if(game.review_frame_num == null) {
         game.review_frame_num = 0;
@@ -216,13 +191,6 @@ export function catchupAll(game: GameState, send: SendCB, gameid: GameID) {
 export function catchupPlayer(game: GameState, send: SendCB, gameid: GameID, playerid: PlayerID) {
     const pl = game.players.find(pl => pl.id === playerid);
     if(pl == null) throw new MsgError("You are not in the game");
-
-    if(game.state !== "ALLOW_JOINING") {
-        send(playerid, {kind: "game_info",
-            game_id: gameid,
-            player_id: playerid,
-        });
-    }
 
     if(game.state === "ALLOW_JOINING") {
         send(pl.id, {kind: "choose_palettes_and_ready", taken_palettes: game.players.filter(p => p.selected_palette != null).map(p => p.selected_palette!)});

@@ -115,6 +115,10 @@ const server = Bun.serve<WebsocketData>({
                 ws.subscribe(ws.data.game_id);
                 ws.subscribe(ws.data.player_id);
                 console.log("connect: "+ws.data.player_id);
+                send(ws.data.player_id, {kind: "game_info",
+                    game_id: ws.data.game_id,
+                    player_id: ws.data.player_id,
+                });
                 game.proto.catchup({
                     send,
                     gameid: ws.data.game_id,
