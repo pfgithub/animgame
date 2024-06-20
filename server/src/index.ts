@@ -3,6 +3,7 @@ import type { BroadcastMsg, GameID, PlayerID, RecieveMessage } from "../../share
 import { MsgError, anyinterface, type AnyGameInterface, type AnyGameState, type GameInterface } from "./gamelib";
 import { animgame_interface } from "./games/animgame";
 import { drawgrid_interface } from "./games/drawgrid";
+import {readFileSync} from "fs";
 
 // consider hono so we can run on cloudflare pages?
 
@@ -19,15 +20,15 @@ const validlet = "ABCDEFGHJKMNPQRTUVWXYZ2346789"
 function toletBiased(a: number): string {
     return validlet[a % validlet.length];
 }
-function createGame(proto: GameInterface<AnyGameState>, force_code?: string) {
-    const gameid = crypto.randomUUID() as GameID;
+function createGame(proto: GameInterface<AnyGameState>, force_code?: string, force_id?: string) {
+    const gameid = (force_id != null ? force_id : crypto.randomUUID()) as GameID;
     if(games.has(gameid)) throw new Error("UUID COLLISION");
     const rba = new Uint8Array(5);
     crypto.getRandomValues(rba);
     const gamestr = force_code ?? [...rba].map(toletBiased).join("");
     if(game_id_map.has(gamestr)) throw new MsgError("Failed to create game");
     games.set(gameid, {
-        state: proto.create(),
+        state: force_id != null ? JSON.parse(readFileSync("saved-games/"+force_id+".json", "utf-8")) : proto.create(),
         proto: proto,
     });
     game_id_map.set(gamestr, gameid);
@@ -36,7 +37,7 @@ function createGame(proto: GameInterface<AnyGameState>, force_code?: string) {
 const game_id_map = new Map<string, GameID>();
 const games = new Map<GameID, GameData>();
 console.log("Animgame Code: "+createGame(anyinterface(animgame_interface), "ABCD"));
-console.log("Drawgrid Code: "+createGame(anyinterface(drawgrid_interface), "DRGR"));
+console.log("Drawgrid Code: "+createGame(anyinterface(drawgrid_interface), "DRGR", "cb616efa-bd35-41dc-bb31-f6a600f9fd32"));
 
 export function lookupGameFromCode(gamestr: string): null | GameID {
     const gres = game_id_map.get(gamestr.toUpperCase());

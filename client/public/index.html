@@ -5,7 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon"> 
     <title>AnimGame</title>
-    <style>body{background-color:gray;margin:0;word-wrap:break-word;word-break:break-all}:disabled{opacity:0.5}</style>
+    <style>
+        body{background-color:gray;margin:0;word-wrap:break-word;word-break:break-all}
+        :disabled{opacity:0.5}
+        .showgridandguess--correct{
+            transition:0.2s transform;
+            transform:scale(0.8);
+            opacity:0.2;
+            position:relative
+        }
+    </style>
 </head>
 <body>
     <div id="root">Load...</div>

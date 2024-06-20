@@ -28,6 +28,10 @@ TODO:
        We can use an access token in localstorage for that.
   - We can store a list of played game ids, and then the server can
     store game ids -> game overview screen
+- [ ] Allow another client to take over a player who is disconnected
+  - eg if your phone runs out of battery, you need to reconnect
+    otherwise the game can't go on
+  - or if you fall asleep, someone needs to take your place
 
 Known issues:
 - Because we're using websockets instead of UDP, outdated packets will queue up to be sent. This can be mitigated by checking the websocket fill amount in bun maybe? It's also probably not a problem with such a low volume of data.
@@ -44,3 +48,7 @@ More games to make:
 Transparent multiplayer?
 - It would be nice to have a multiplayer setup in code where anyone can
   join or leave at any time and it works with no effort.
+
+DrawGrid:
+- [ ] Score players based on time (say 2000 points - 1000 points based on which # guesser you were, and 0 points if you give up)
+- [ ] Show scores at the end

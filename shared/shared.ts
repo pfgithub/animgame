@@ -56,6 +56,15 @@ export type BroadcastMsg = {
     choice: string,
 } | {
     kind: "grid_and_guess",
+    images: {id: string, palette: number, value: string}[],
+    guessed: string[],
+    given_up: boolean,
+} | {
+    kind: "chat_message",
+    value: string,
+} | {
+    kind: "grid_correct_guess",
+    image: string,
 };
 export type RecieveMessage = {
     kind: "mark_ready",
@@ -72,6 +81,9 @@ export type RecieveMessage = {
 } | {
     kind: "choose_prompt",
     choice: string,
+} | {
+    kind: "chat_message",
+    message: string,
 };
 
 export type FrameSet = {

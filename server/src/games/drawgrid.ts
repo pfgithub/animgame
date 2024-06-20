@@ -19,7 +19,7 @@
 // - show end screen with scores
 
 import { shuffle, type PlayerID, type RecieveMessage } from "../../../shared/shared";
-import { MsgError, baseChoosePalette, baseFillPalettes, baseMarkReady, type GameCtx, type GameCtxNoPlayer, type GameInterface } from "../gamelib";
+import { MsgError, baseChoosePalette, baseFillPalettes, baseMarkReady, baseResetReady, type GameCtx, type GameCtxNoPlayer, type GameInterface } from "../gamelib";
 
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 20;
@@ -46,7 +46,8 @@ type Player = {
     selected_palette?: number,
     prompt_choices?: string[],
     prompt?: string,
-    drawing?: string,
+    image?: string,
+    guessed_images?: string[],
     points: number,
     ready: boolean,
 };
@@ -87,11 +88,18 @@ function startDrawPhase(ctx: GameCtxNoPlayer<GameState>): void {
 }
 function startGuessPhase(ctx: GameCtxNoPlayer<GameState>): void {
     ctx.game.state = "GRID_AND_GUESS";
+    baseResetReady(ctx.game);
     catchupAll(ctx);
 }
 function catchupAll(ctx: GameCtxNoPlayer<GameState>): void {
     for(const player of ctx.game.players) {
         drawgrid_interface.catchup({...ctx, playerid: player.id});
+    }
+}
+function checkGridAndGuessOver(ctx: GameCtxNoPlayer<GameState>): void {
+    if(ctx.game.players.every(pl => pl.guessed_images?.length === ctx.game.players.length - 1 || pl.ready)) {
+        ctx.game.state = "REVEAL_SCORES";
+        catchupAll(ctx);
     }
 }
 
@@ -130,7 +138,7 @@ export const drawgrid_interface: GameInterface<GameState> = {
         }else if(ctx.game.state === "DRAW") {
             const player = ctx.game.players.find(pl => pl.id === ctx.playerid);
             if(player == null) throw new MsgError("Player not found");
-            if(player.drawing != null) {
+            if(player.image != null) {
                 ctx.send(ctx.playerid, {kind: "show_frame_accepted"});
             }else{
                 ctx.send(ctx.playerid, {kind: "show_draw_frame", context: {
@@ -142,7 +150,22 @@ export const drawgrid_interface: GameInterface<GameState> = {
                 }});
             }
         }else if(ctx.game.state === "GRID_AND_GUESS") {
-            ctx.send(ctx.playerid, {kind: "grid_and_guess"});
+            const player = ctx.game.players.find(pl => pl.id === ctx.playerid);
+            if(player == null) throw new MsgError("Player not found");
+            ctx.send(ctx.playerid, {
+                kind: "grid_and_guess",
+                guessed: player.guessed_images ?? [],
+                given_up: player.ready,
+                images: ctx.game.players.filter(p => p.id !== player.id).map(p => {
+                    return {
+                        id: p.id,
+                        palette: p.selected_palette!,
+                        value: p.image!,
+                    };
+                }),
+            });
+        }else if(ctx.game.state === "REVEAL_SCORES") {
+            throw new MsgError("TODO reveal_scores");
         }else throw new MsgError("TODO impl catchup for state: "+ctx.game.state);
     },
     onDisconnect(ctx) {
@@ -163,6 +186,7 @@ export const drawgrid_interface: GameInterface<GameState> = {
                     }
                 }
             }
+            if(ctx.game.state === "GRID_AND_GUESS") checkGridAndGuessOver(ctx);
         }else if(msg.kind === "choose_prompt") {
             if(ctx.game.state !== "CHOOSE_PROMPT") throw new MsgError("You cannot choose your prompt at this time.");
             const player = ctx.game.players.find(pl => pl.id === ctx.playerid);
@@ -179,12 +203,31 @@ export const drawgrid_interface: GameInterface<GameState> = {
             const player = ctx.game.players.find(pl => pl.id === ctx.playerid);
             if(player == null) throw new MsgError("Player not found");
             if(msg.frames.length !== 1) throw new MsgError("Expected one frame");
-            player.drawing = msg.frames[0]!;
+            player.image = msg.frames[0]!;
 
-            if(ctx.game.players.every(player => player.drawing != null)) {
+            if(ctx.game.players.every(player => player.image != null)) {
                 startGuessPhase(ctx);
             }else{
                 drawgrid_interface.catchup(ctx);
+            }
+        }else if(msg.kind === "chat_message") {
+            if(ctx.game.state !== "GRID_AND_GUESS") throw new MsgError("You cannot submit chat messages at this time.");
+            const player = ctx.game.players.find(pl => pl.id === ctx.playerid);
+            if(player == null) throw new MsgError("Player not found");
+            const msgtrimlc = msg.message.trim().toLowerCase();
+            const ismatch = ctx.game.players.find(p => p.prompt?.toLowerCase() === msgtrimlc);
+            if(ismatch != null) {
+                if(ismatch.id !== player.id) {
+                    player.guessed_images ??= [];
+                    if(player.guessed_images.indexOf(ismatch.id) === -1) {
+                        // ✓!
+                        player.guessed_images.push(ismatch.id);
+                        ctx.send(player.id, {kind: "grid_correct_guess", image: ismatch.id});
+                        checkGridAndGuessOver(ctx);
+                    }
+                }
+            }else{
+                ctx.send(ctx.gameid, {kind: "chat_message", value: player.name+": "+msg.message});
             }
         }else{
             throw new MsgError("Command not supported: `"+(msg as RecieveMessage).kind+"`");

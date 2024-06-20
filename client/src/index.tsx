@@ -91,7 +91,7 @@ function handleMessage(msg: BroadcastMsg) {
     }else if(msg.kind === "choose_prompt") {
         showchooseprompt(msg.choices, msg.choice);
     }else if(msg.kind === "grid_and_guess") {
-        showgridandguess();
+        showgridandguess(msg.images, msg.guessed, msg.given_up);
     }else if(msg.kind === "game_over") {
         disconnect();
         showend();
@@ -106,12 +106,6 @@ function showguessprompt(image: string, prompts: string[]) {
     // - the image @ the top
     // - Guess the prompt:
     // - list of prompts in a style like the palette buttons
-}
-function showfullanimation(frames: string[]) {
-    // show:
-    // - the animation, looping
-    // - "Next" button that is like the "Ready" button, everyone
-    //   has to press it
 }
 function choosepalettesandready(in_taken_palettes: number[]) {
     let your_palette = -1;
@@ -336,14 +330,92 @@ function showchooseprompt(choices: string[], choice_initial?: string) {
         }
     }));
 }
-function showgridandguess() {
+function maxSquareSize(num_images: number, w: number, h: number) {
+    let res = 0;
+    for(let rows = 1; rows <= num_images; rows++) {
+        const columns = Math.ceil(num_images / rows);
+        const square_size = Math.min(w / columns, h / rows);
+
+        if(square_size > res) res = square_size;
+    }
+    return res;
+}
+function showgridandguess(images: {id: string, palette: number, value: string}[], in_correct: string[], ready: boolean) {
+    const correct = signal(in_correct);
     // let's make this one a fullscreen ui
     // image grid left, text chat right
-    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
-        <div style="display:flex;flex-direction:column;gap:1rem">
-            <div>ShowGridAndGuess</div>
+
+    // the grid has a size in pixels
+    // : say 25x40
+    // we know the number of images we would like to display
+    // : say 6
+    // we need to select the largest square size possible to be
+    // able to display all six images
+    // - 1 => min(w, h)
+    // - 2 => min(w / 2, h / 2)
+    rootel.innerHTML = `<div id="rootitm" style="width:100vw;height:100vh;margin:0 auto;background-color:white"><div style="padding:1rem;box-sizing:border-box;height:100%">
+        <div style="height:100%;display:flex;flex-direction:row;gap:1rem">
+            <div id="gridzone" style="display:flex;flex-wrap:wrap;align-content:center;justify-content:center;flex:1;overflow:hidden;height:100%"></div>
+            <div style="width:min(20rem,30vw);height:100%;overflow-y:scroll;overflow-x:hidden">
+                <form id="chatform" action="javascript:;" style="display:flex">
+                    <input id="guessinput" name="guess" style="flex:1;width:0"></input>
+                    <button>Guess</button>
+                </form>
+                <div id="giveupbtnhere"></div>
+                <div id="msgshere"></div>
+            </div>
         </div>
     </div></div>`;
+    const rootitm: HTMLDivElement = rootel.querySelector("#rootitm")!;
+    const msgshere: HTMLDivElement = rootel.querySelector("#msgshere")!;
+    const gridzone: HTMLDivElement = rootel.querySelector("#gridzone")!;
+    const giveupbtnhere: HTMLDivElement = rootel.querySelector("#giveupbtnhere")!;
+    giveupbtnhere.appendChild(makereadybtn("Give up", ready));
+    const form = rootel.querySelector("form")!;
+    const guessinput: HTMLInputElement = rootel.querySelector("#guessinput")!;
+    const onresize = () => {
+        const gzsize = gridzone?.getBoundingClientRect();
+        const max_size = maxSquareSize(images.length, gzsize.width, gzsize.height);
+        gridzone.style.setProperty("--width", Math.floor(max_size)+"px");
+    };
+    new ResizeObserver(onresize).observe(gridzone);
+    onresize();
+
+    for(const image of images) {
+        const palette = palettes[image.palette];
+        const mysvg = drawcanvas();
+        mysvg.setAttribute("style", "width:var(--width);height:var(--width)");
+        const frame_value: ImgSrlz = JSON.parse(image.value);
+        mysvg.style.backgroundColor = palette[frame_value.background_color_index];
+        unsrlzImg(mysvg, frame_value, palette);
+        gridzone.appendChild(mysvg);
+        onupdateAndNow(correct, () => {
+            const incl = correct.value.includes(image.id);
+            mysvg.classList.toggle("showgridandguess--correct", incl);
+        })
+    }
+    rootitm.appendChild(wsEventHandler(msg => {
+        if(msg.kind === "grid_correct_guess") {
+            correct.value.push(msg.image);
+            correct.update();
+        }
+    }));
+
+    form.addEventListener("submit", e => {
+        e.preventDefault();
+        const data = new FormData(e.target as any);
+        const guess = data.get("guess") as string;
+        sendMessage({kind: "chat_message", message: guess});
+        guessinput.value = "";
+    });
+
+    rootitm.appendChild(wsEventHandler(msg => {
+        if(msg.kind === "chat_message") {
+            const cmdiv = document.createElement("div");
+            cmdiv.textContent = msg.value;
+            msgshere.insertBefore(cmdiv, msgshere.firstChild);
+        }
+    }));
 }
 
 const demo_frames: Frame[] = [
@@ -372,6 +444,12 @@ if(location.hash === "#demo/choosepalettesandready") {
         images: [...demo_frames, ...demo_frames],
         prompt: "A quick brown fox jumps over a lazy dog",
     }, false);
+}else if(location.hash === "#demo/showgridandguess") {
+    showgridandguess([...demo_frames, ...demo_frames].map((m, i) => ({
+        id: ""+i,
+        palette: 6,
+        value: m.value,
+    })), ["2"], false);
 }else{
     entergamecode();
 }
