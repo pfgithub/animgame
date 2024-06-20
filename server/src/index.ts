@@ -1,7 +1,7 @@
 import { join, resolve } from "path";
-import { choosePalette, animgame_interface } from "./games/animgame";
 import type { BroadcastMsg, GameID, PlayerID, RecieveMessage } from "../../shared/shared";
-import { MsgError, type AnyGameInterface, type AnyGameState, type GameInterface } from "./gamelib";
+import { MsgError, anyinterface, type AnyGameInterface, type AnyGameState, type GameInterface } from "./gamelib";
+import { animgame_interface } from "./games/animgame";
 import { drawgrid_interface } from "./games/drawgrid";
 
 // consider hono so we can run on cloudflare pages?
@@ -19,12 +19,12 @@ const validlet = "ABCDEFGHJKMNPQRTUVWXYZ2346789"
 function toletBiased(a: number): string {
     return validlet[a % validlet.length];
 }
-function createGame(proto: GameInterface<AnyGameState>) {
+function createGame(proto: GameInterface<AnyGameState>, force_code?: string) {
     const gameid = crypto.randomUUID() as GameID;
     if(games.has(gameid)) throw new Error("UUID COLLISION");
     const rba = new Uint8Array(5);
     crypto.getRandomValues(rba);
-    const gamestr = [...rba].map(toletBiased).join("");
+    const gamestr = force_code ?? [...rba].map(toletBiased).join("");
     if(game_id_map.has(gamestr)) throw new MsgError("Failed to create game");
     games.set(gameid, {
         state: proto.create(),
@@ -35,8 +35,8 @@ function createGame(proto: GameInterface<AnyGameState>) {
 }
 const game_id_map = new Map<string, GameID>();
 const games = new Map<GameID, GameData>();
-console.log("Animgame Code: "+createGame(animgame_interface));
-console.log("Drawgrid Code: "+createGame(drawgrid_interface));
+console.log("Animgame Code: "+createGame(anyinterface(animgame_interface), "ABCD"));
+console.log("Drawgrid Code: "+createGame(anyinterface(drawgrid_interface), "DRGR"));
 
 export function lookupGameFromCode(gamestr: string): null | GameID {
     const gres = game_id_map.get(gamestr.toUpperCase());

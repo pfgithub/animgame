@@ -18,7 +18,11 @@
 //   or just one, combined draw/guess
 // - show end screen with scores
 
-import { MsgError, anyinterface } from "../gamelib";
+import type { PlayerID, RecieveMessage } from "../../../shared/shared";
+import { MsgError, baseChoosePalette, baseMarkReady, type GameInterface } from "../gamelib";
+
+const MIN_PLAYERS = 3;
+const MAX_PLAYERS = 20;
 
 // this doesn't require much new stuff
 // - same palette&ready screen
@@ -37,11 +41,13 @@ type GameStateEnum = (
     | "REVEAL_SCORES"
 );
 type Player = {
+    id: PlayerID,
     name: string,
     selected_palette?: number,
     prompt?: string,
     drawing?: string,
     points: number,
+    ready: boolean,
 };
 type GameState = {
     config: {
@@ -54,24 +60,51 @@ type GameState = {
 
 const default_word_list = ["apple", "pear", "bananna"];
 
-export const drawgrid_interface = anyinterface<GameState>({
+export const drawgrid_interface: GameInterface<GameState> = {
     create(): GameState {
         return {
             config: {word_list: default_word_list},
-            state: "CHOOSE_PROMPT",
+            state: "JOIN_AND_PALETTE",
             players: [],
         };
     },
     join(game_id, game, player_name) {
-        throw new MsgError("TODO impl join");
+        if(game.players.some(pl => pl.id === player_name)) return player_name as PlayerID;
+        if(game.state !== "JOIN_AND_PALETTE") throw new MsgError("No new players are allowed to join the game.");
+        if(game.players.length >= MAX_PLAYERS) throw new MsgError("The game is full.");
+        if(game.players.some(pl => pl.name === player_name)) throw new MsgError("Player name already taken.");
+        const plid = crypto.randomUUID() as PlayerID;
+        game.players.push({
+            name: player_name,
+            id: plid,
+            points: 0,
+            ready: false,
+        });
+        // success
+        return plid;
     },
     catchup(ctx) {
-        throw new MsgError("TODO impl catchup");
+        if(ctx.game.state === "JOIN_AND_PALETTE") {
+            ctx.send(ctx.playerid, {kind: "choose_palettes_and_ready", taken_palettes: ctx.game.players.filter(pl => pl.selected_palette != null).map(pl => pl.selected_palette!)});
+        }else throw new MsgError("TODO impl catchup for state: "+ctx.game.state);
     },
     onDisconnect(ctx) {
         throw new MsgError("TODO impl disconnect");
     },
     onMessage(ctx, msg) {
-        throw new MsgError("TODO impl message");
+        if(msg.kind === "choose_palette") {
+            if(ctx.game.state !== "JOIN_AND_PALETTE") throw new MsgError("You cannot change your palette at this time");
+            baseChoosePalette(ctx, msg.palette);
+        }else if(msg.kind === "mark_ready") {
+            if(baseMarkReady(ctx, msg.value)) {
+                if(ctx.game.state === "JOIN_AND_PALETTE") {
+                    if(ctx.game.players.length >= MIN_PLAYERS) {
+                        throw new MsgError("TODO start the game");
+                    }
+                }
+            }
+        }else{
+            throw new MsgError("Command not supported: `"+(msg as RecieveMessage).kind+"`");
+        }
     },
-});
+};

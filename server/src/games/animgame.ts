@@ -1,19 +1,18 @@
-import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type FrameSet, type GameID, type PlayerID, type RecieveMessage} from "../../../shared/shared.ts";
-import { MsgError, anyinterface, baseChoosePalette, type GameInterface, type SendCB } from "../gamelib.ts";
+import { palettes, type ContextFrames, type FrameSet, type GameID, type PlayerID, type RecieveMessage } from "../../../shared/shared.ts";
+import { MsgError, baseChoosePalette, baseMarkReady, type GameInterface, type SendCB } from "../gamelib.ts";
 
 // TODO playtest for these numbers
 // & maybe for high player counts, each player only draws one frame
 // we need a target length of time & then match these counts to how
 // long we want the game to go
 const MIN_PLAYERS = 3;
-const MAX_PLAYERS = 12;
+const MAX_PLAYERS = 20;
 
 type GamePlayer = {
     id: PlayerID,
     name: string,
     selected_palette?: number, // only one player can select each palette
     ready: boolean,
-    connected: boolean,
 };
 
 type GameStateEnum = (
@@ -58,7 +57,6 @@ export function joinGame(game: GameState, gameid: GameID, player_name: string): 
         name: player_name,
         id: plid,
         ready: false,
-        connected: true,
     });
     // success
     return plid;
@@ -71,21 +69,14 @@ export function onPlayerDisconnected(game: GameState, gameid: GameID, player_id:
         // mark the player as disconnected
         const player = game.players.find(pl => pl.id === player_id);
         if(player == null) return; // nothing to do
-        player.connected = false;
     }
 }
 export function choosePalette(game: GameState, send: SendCB, gameid: GameID, playerid: PlayerID, palette: number) {
     if(game.state !== "ALLOW_JOINING") throw new MsgError("You cannot change your palette at this time");
-    baseChoosePalette(send, gameid, game, playerid, palette);
+    baseChoosePalette({send, gameid, game, playerid}, palette);
 }
 export function markReady(game: GameState, send: SendCB, gameid: GameID, playerid: PlayerID, value: boolean) {
-    const pl = game.players.find(pl => pl.id === playerid);
-    if(pl == null) throw new MsgError("You are not in the game");
-    pl.ready = value;
-
-    send(playerid, {kind: "ready_ack", value});
-
-    if(game.players.every(pl => pl.ready)) {
+    if(baseMarkReady({send, gameid, game, playerid}, value)) {
         if(game.state === "ALLOW_JOINING") {
             if(game.players.length >= MIN_PLAYERS) {
                 // start the game
@@ -267,7 +258,7 @@ export type Ctx = {
     send: SendCB,
 };
 
-export const animgame_interface = anyinterface<GameState>({
+export const animgame_interface: GameInterface<GameState> = {
     create() {
         return createGame();
     },
@@ -293,7 +284,7 @@ export const animgame_interface = anyinterface<GameState>({
             throw new MsgError("Command not supported: `"+(msg as RecieveMessage).kind+"`");
         }
     },
-});
+};
 
 // if we implement this genericly, we can literally just tell the client
 // "show this scene for this amount of time" and have all logic on the

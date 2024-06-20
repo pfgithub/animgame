@@ -1,4 +1,4 @@
-import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type FrameSet, type GameID, type PlayerID, type RecieveMessage} from "../../shared/shared.ts";
+import { palettes, type BroadcastMsg, type GameID, type PlayerID, type RecieveMessage } from "../../shared/shared.ts";
 
 export class MsgError extends Error {
     constructor(msg: string) {
@@ -16,19 +16,39 @@ type PlayerWithPalette = {
 type GameWithPlayersWithPalettes = {
     players: PlayerWithPalette[],
 };
+type PlayerWithReady = {
+    id: PlayerID,
+    ready: boolean,
+};
+type GameWithPlayersWithReady = {
+    players: PlayerWithReady[],
+};
 
-export function baseChoosePalette(send: SendCB, gameid: GameID, game: GameWithPlayersWithPalettes, playerid: PlayerID, palette: number): void {
+export function baseChoosePalette(ctx: GameCtx<GameWithPlayersWithPalettes>, palette: number): void {
     if((palette |0) !== palette || palette < 0 || palette >= palettes.length) throw new MsgError("Palette out of range");
     let pl: PlayerWithPalette | null = null;
-    for(const player of game.players) {
-        if(player.id === playerid) {
+    for(const player of ctx.game.players) {
+        if(player.id === ctx.playerid) {
             pl = player;
         }else if(player.selected_palette == palette) throw new MsgError("Someone else already chose that palette");
     }
     if(pl == null) throw new MsgError("You are not in the game");
     pl.selected_palette = palette;
-    send(playerid, {kind: "confirm_your_taken_palette", palette});
-    send(gameid, {kind: "update_taken_palettes", taken: game.players.filter(p => p.selected_palette != null).map(p => p.selected_palette!)});
+    ctx.send(ctx.gameid, {kind: "update_taken_palettes", taken: ctx.game.players.filter(p => p.selected_palette != null).map(p => p.selected_palette!)});
+    ctx.send(ctx.playerid, {kind: "confirm_your_taken_palette", palette});
+}
+/// returns true if all players are ready
+export function baseMarkReady(ctx: GameCtx<GameWithPlayersWithReady>, value: boolean): boolean {
+    const pl = ctx.game.players.find(pl => pl.id === ctx.playerid);
+    if(pl == null) throw new MsgError("You are not in the game");
+    pl.ready = value;
+
+    ctx.send(ctx.playerid, {kind: "ready_ack", value});
+
+    if(ctx.game.players.every(pl => pl.ready)) {
+        return true;
+    }
+    return false;
 }
 
 export type GameCtx<T> = {
