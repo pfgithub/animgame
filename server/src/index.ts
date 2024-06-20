@@ -1,5 +1,5 @@
 import { join, resolve } from "path";
-import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady, postPrompt, postFrames, saveGame, choosePalette } from "./games/animgame";
+import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady, postPrompt, postFrames, saveGame, choosePalette, animgame_interface } from "./games/animgame";
 import type { BroadcastMsg, GameID, PlayerID, RecieveMessage } from "../../shared/shared";
 
 // consider hono so we can run on cloudflare pages?
@@ -48,15 +48,12 @@ const server = Bun.serve<WebsocketData>({
             try {
                 if(typeof message !== "string") throw new MsgError("Message was not a string");
                 const msg_val = JSON.parse(message) as RecieveMessage;
-                if(msg_val.kind === "mark_ready") {
-                    markReady(send, ws.data.game_id, ws.data.player_id, msg_val.value);
-                }else if(msg_val.kind === "submit_prompt") {
-                    postPrompt(send, ws.data.game_id, ws.data.player_id, msg_val.prompt);
-                }else if(msg_val.kind === "submit_animation") {
-                    postFrames(send, ws.data.game_id, ws.data.player_id, msg_val.frames);
-                }else if(msg_val.kind === "choose_palette") {
-                    choosePalette(send, ws.data.game_id, ws.data.player_id, msg_val.palette);
-                }
+                animgame_interface.onMessage({
+                    send,
+                    gameid: ws.data.game_id,
+                    game: 0 as never,
+                    playerid: ws.data.player_id,
+                }, msg_val);
                 saveGame(ws.data.game_id);
             }catch(e) {
                 if(e instanceof MsgError) {
@@ -70,14 +67,24 @@ const server = Bun.serve<WebsocketData>({
             ws.subscribe(ws.data.game_id);
             ws.subscribe(ws.data.player_id);
             console.log("connect: "+ws.data.player_id);
-            catchupPlayer(send, ws.data.game_id, ws.data.player_id);
+            animgame_interface.catchup({
+                send,
+                gameid: ws.data.game_id,
+                game: 0 as never,
+                playerid: ws.data.player_id,
+            });
             saveGame(ws.data.game_id);
         },
         close(ws, code, reason) {
             ws.unsubscribe(ws.data.game_id);
             ws.unsubscribe(ws.data.player_id);
             console.log("disconnect: "+ws.data.player_id+": `"+reason+"` ("+code+")");
-            onPlayerDisconnected(ws.data.game_id, ws.data.player_id);
+            animgame_interface.onDisconnect({
+                send,
+                gameid: ws.data.game_id,
+                game: 0 as never,
+                playerid: ws.data.player_id,
+            });
             saveGame(ws.data.game_id);
         },
         drain(ws) {
@@ -96,7 +103,7 @@ const server = Bun.serve<WebsocketData>({
 
             const game_id = lookupGame(codeparam) ?? (codeparam as GameID);
             console.log("try join game: "+game_id);
-            const player_id = joinGame(game_id, nameparam);
+            const player_id = animgame_interface.join(game_id, 0 as never, nameparam);
 
             if(!server.upgrade(request, {
                 data: {
@@ -104,7 +111,12 @@ const server = Bun.serve<WebsocketData>({
                     player_id,
                 } satisfies WebsocketData,
             })) {
-                onPlayerDisconnected(game_id, player_id);
+                animgame_interface.onDisconnect({
+                    send,
+                    gameid: game_id,
+                    game: 0 as never,
+                    playerid: player_id,
+                });
                 return new Response("Upgrade failed", {status: 400});
             }
 

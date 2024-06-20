@@ -27,3 +27,26 @@
 // - new DrawGridReveal screen
 // - new EndScore screen
 
+type GameStateEnum = (
+    | "JOIN_AND_PALETTE"
+    | "CHOOSE_PROMPT"
+    | "DRAW"
+    | "GRID_AND_GUESS"
+    | "REVEAL_SCORES"
+);
+type Player = {
+    name: string,
+    selected_palette?: number,
+    prompt?: string,
+    drawing?: string,
+    points: number,
+};
+type GameState = {
+    config: {
+        word_list: string[],
+    },
+    state: GameStateEnum,
+    players: Player[],
+};
+
+

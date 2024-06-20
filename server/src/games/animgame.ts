@@ -1,4 +1,5 @@
-import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type FrameSet, type GameID, type PlayerID} from "../../../shared/shared.ts";
+import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type FrameSet, type GameID, type PlayerID, type RecieveMessage} from "../../../shared/shared.ts";
+import { baseChoosePalette, type GameInterface, type SendCB } from "../gamelib.ts";
 
 export class MsgError extends Error {
     constructor(msg: string) {
@@ -101,17 +102,7 @@ export function choosePalette(send: SendCB, gameid: GameID, playerid: PlayerID, 
     const game = games.get(gameid);
     if(game == null) throw new MsgError("Game not found");
     if(game.state !== "ALLOW_JOINING") throw new MsgError("You cannot change your palette at this time");
-    if((palette |0) !== palette || palette < 0 || palette >= palettes.length) throw new MsgError("Palette out of range");
-    let pl: GamePlayer | null = null;
-    for(const player of game.players) {
-        if(player.id === playerid) {
-            pl = player;
-        }else if(player.selected_palette == palette) throw new MsgError("Someone else already chose that palette");
-    }
-    if(pl == null) throw new MsgError("You are not in the game");
-    pl.selected_palette = palette;
-    send(playerid, {kind: "confirm_your_taken_palette", palette});
-    send(gameid, {kind: "update_taken_palettes", taken: game.players.filter(p => p.selected_palette != null).map(p => p.selected_palette!)});
+    baseChoosePalette(send, gameid, game, playerid, palette);
 }
 export function markReady(send: SendCB, gameid: GameID, playerid: PlayerID, value: boolean) {
     const game = games.get(gameid);
@@ -266,7 +257,6 @@ export function saveGame(gameid: GameID): void {
     Bun.write("saved-games/"+gameid+".json", JSON.stringify(game), {createPath: true});
 }
 
-type SendCB = (channel: GameID | PlayerID, message: BroadcastMsg) => void;
 export function catchupAll(send: SendCB, gameid: GameID) {
     const game = games.get(gameid);
     if(game == null) throw new MsgError("Game not found");
@@ -319,6 +309,31 @@ function modframes(game: GameState, playerindex: number): number {
 export type Ctx = {
     game: GameID,
     send: SendCB,
+};
+
+export const animgame_interface: GameInterface<GameState> = {
+    join(game_id, game, player_name) {
+        return joinGame(game_id, player_name);
+    },
+    catchup(ctx) {
+        catchupPlayer(ctx.send, ctx.gameid, ctx.playerid);
+    },
+    onDisconnect(ctx) {
+        onPlayerDisconnected(ctx.gameid, ctx.playerid);
+    },
+    onMessage(ctx, msg) {
+        if(msg.kind === "mark_ready") {
+            markReady(ctx.send, ctx.gameid, ctx.playerid, msg.value);
+        }else if(msg.kind === "submit_prompt") {
+            postPrompt(ctx.send, ctx.gameid, ctx.playerid, msg.prompt);
+        }else if(msg.kind === "submit_animation") {
+            postFrames(ctx.send, ctx.gameid, ctx.playerid, msg.frames);
+        }else if(msg.kind === "choose_palette") {
+            choosePalette(ctx.send, ctx.gameid, ctx.playerid, msg.palette);
+        }else{
+            throw new MsgError("Command not supported: `"+(msg as RecieveMessage).kind+"`");
+        }
+    },
 };
 
 // if we implement this genericly, we can literally just tell the client
