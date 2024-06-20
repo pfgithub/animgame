@@ -148,8 +148,9 @@ function choosepalettesandready(in_taken_palettes: number[]) {
         onupdateAndNow(taken_palettes, () => {
             const v = taken_palettes.value.includes(i);
             const m = i === your_palette;
-            palettebtn.disabled = v && !m;
-            palettebtn.style.opacity = v && !m ? "0.2" : "";
+            palettebtn.disabled = v;
+            palettebtn.style.opacity = "1.0";
+            pbin.style.opacity = v ? "0.2" : "1.0";
             proot.style.borderColor = v || m ? "transparent" : "gray";
             pbin.style.borderColor = v && !m ? "gray" : "transparent";
             proot.style.outline = m ? "2px solid red" : "";
