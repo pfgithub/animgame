@@ -34,3 +34,6 @@ Known issues:
 
 More games to make:
 - Linegame. On your turn, you can draw one line. End.
+- Sentencegame. On your turn, you write one sentence. Next player only sees the last sentence. Make a story.
+- Drawprompts. Pairs get the same prompt, each draw a thing, vote for the best.
+- Scribble. Guess the draw from the word list.
