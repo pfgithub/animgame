@@ -36,8 +36,8 @@ function createGame(proto: GameInterface<AnyGameState>, force_code?: string, for
 }
 const game_id_map = new Map<string, GameID>();
 const games = new Map<GameID, GameData>();
-console.log("Animgame Code: "+createGame(anyinterface(animgame_interface), "ABCD"));
-console.log("Drawgrid Code: "+createGame(anyinterface(drawgrid_interface), "DRGR", "cb616efa-bd35-41dc-bb31-f6a600f9fd32"));
+console.log("Animgame Code: "+createGame(anyinterface(animgame_interface), "ABCD", process.env.ANIMGAME_LOAD ?? undefined));
+console.log("Drawgrid Code: "+createGame(anyinterface(drawgrid_interface), "DRGR", process.env.DRAWGRID_LOAD ?? undefined));
 
 export function lookupGameFromCode(gamestr: string): null | GameID {
     const gres = game_id_map.get(gamestr.toUpperCase());
