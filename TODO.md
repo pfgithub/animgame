@@ -36,4 +36,11 @@ More games to make:
 - Linegame. On your turn, you can draw one line. End.
 - Sentencegame. On your turn, you write one sentence. Next player only sees the last sentence. Make a story.
 - Drawprompts. Pairs get the same prompt, each draw a thing, vote for the best.
-- Scribble. Guess the draw from the word list.
+- DrawGrid : Everyone gets a prompt (choice of 3 words) and draws a
+  picture. Then, all the pictures are shown in a grid (random order)
+  & you gotta guess them all. Points for being guessed first & guessing
+  first.
+
+Transparent multiplayer?
+- It would be nice to have a multiplayer setup in code where anyone can
+  join or leave at any time and it works with no effort.
