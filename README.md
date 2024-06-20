@@ -28,6 +28,12 @@ bun src/index.ts
 
 Now, use `ngrok` or similar to let other people join.
 
+```
+ngrok http http://localhost:2390
+# or
+cloudflared tunnel run animgame-dev
+```
+
 Code is `ABCD`
 
 ## PROJECT STATUS:
