@@ -2,6 +2,7 @@ import type { RecieveMessage } from "../../shared/shared";
 
 
 export function connect(name: string, code: string): void {
+    disconnect();
     const wsurl = new URL(location.href);
     wsurl.pathname = "/websocket";
     wsurl.search = "?name="+encodeURIComponent(name)+"&code="+encodeURIComponent(code);
@@ -38,6 +39,4 @@ function handleMessage(msg: RecieveMessage) {
 export let sendMessage = (msg: RecieveMessage) => {
     alert("Not connected");
 };
-export let disconnect = () => {
-    alert("Not connected");
-};
+export let disconnect = () => {};

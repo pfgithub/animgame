@@ -91,6 +91,7 @@ function handleMessage(msg: BroadcastMsg) {
     }else if(msg.kind === "review_reveal") {
         showreviewreveal(msg.frameset, msg.ready);
     }else if(msg.kind === "game_over") {
+        disconnect();
         showend();
     }
 }
