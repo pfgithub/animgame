@@ -1,5 +1,11 @@
 import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type FrameSet, type GameID, type PlayerID, type RecieveMessage} from "../../shared/shared.ts";
-import { MsgError } from "./games/animgame.ts";
+
+export class MsgError extends Error {
+    constructor(msg: string) {
+        super(msg);
+    }
+}
+
 
 export type SendCB = (channel: GameID | PlayerID, message: BroadcastMsg) => void;
 

@@ -18,6 +18,8 @@
 //   or just one, combined draw/guess
 // - show end screen with scores
 
+import { MsgError, anyinterface } from "../gamelib";
+
 // this doesn't require much new stuff
 // - same palette&ready screen
 // - new ChooseFromList screen
@@ -50,3 +52,26 @@ type GameState = {
 };
 
 
+const default_word_list = ["apple", "pear", "bananna"];
+
+export const drawgrid_interface = anyinterface<GameState>({
+    create(): GameState {
+        return {
+            config: {word_list: default_word_list},
+            state: "CHOOSE_PROMPT",
+            players: [],
+        };
+    },
+    join(game_id, game, player_name) {
+        throw new MsgError("TODO impl join");
+    },
+    catchup(ctx) {
+        throw new MsgError("TODO impl catchup");
+    },
+    onDisconnect(ctx) {
+        throw new MsgError("TODO impl disconnect");
+    },
+    onMessage(ctx, msg) {
+        throw new MsgError("TODO impl message");
+    },
+});

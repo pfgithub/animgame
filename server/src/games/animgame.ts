@@ -1,11 +1,5 @@
 import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type FrameSet, type GameID, type PlayerID, type RecieveMessage} from "../../../shared/shared.ts";
-import { anyinterface, baseChoosePalette, type GameInterface, type SendCB } from "../gamelib.ts";
-
-export class MsgError extends Error {
-    constructor(msg: string) {
-        super(msg);
-    }
-}
+import { MsgError, anyinterface, baseChoosePalette, type GameInterface, type SendCB } from "../gamelib.ts";
 
 // TODO playtest for these numbers
 // & maybe for high player counts, each player only draws one frame
