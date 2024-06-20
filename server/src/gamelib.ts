@@ -32,8 +32,15 @@ export type GameCtx<T> = {
     playerid: PlayerID,
 };
 export interface GameInterface<T> {
+    create(): T,
     join(game_id: GameID, game: T, player_name: string): PlayerID,
     catchup(ctx: GameCtx<T>): void,
     onDisconnect(ctx: GameCtx<T>): void,
     onMessage(ctx: GameCtx<T>, message: RecieveMessage): void,
 };
+
+export type AnyGameState = "OpaqueGameT";
+export type AnyGameInterface = GameInterface<AnyGameState>;
+export function anyinterface<T>(a: GameInterface<T>): GameInterface<AnyGameState> {
+    return a as unknown as GameInterface<AnyGameState>;
+}

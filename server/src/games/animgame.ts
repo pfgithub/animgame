@@ -1,5 +1,5 @@
 import {palettes, type BroadcastMsg, type ContextFrames, type Frame, type FrameSet, type GameID, type PlayerID, type RecieveMessage} from "../../../shared/shared.ts";
-import { baseChoosePalette, type GameInterface, type SendCB } from "../gamelib.ts";
+import { anyinterface, baseChoosePalette, type GameInterface, type SendCB } from "../gamelib.ts";
 
 export class MsgError extends Error {
     constructor(msg: string) {
@@ -42,16 +42,9 @@ type GameState = {
     frames: FrameSet[],
 };
 
-const game_id_map = new Map<string, GameID>();
-const games = new Map<GameID, GameState>();
-console.log("Game code: "+createGame());
 
-export function createGame(): string {
-    const gameid = crypto.randomUUID() as GameID;
-    if(games.has(gameid)) throw new Error("UUID COLLISION");
-    const gamestr = "ABCD";
-    if(game_id_map.has(gamestr)) throw new MsgError("Failed to create game");
-    games.set(gameid, {
+export function createGame(): GameState {
+    return {
         config: {
             frame_count: 2,
             draw_your_own_prompt: false,
@@ -59,18 +52,9 @@ export function createGame(): string {
         state: "ALLOW_JOINING",
         players: [],
         frames: [],
-    });
-    game_id_map.set(gamestr, gameid);
-    return gamestr;
+    };
 }
-export function lookupGame(gamestr: string): null | GameID {
-    const gres = game_id_map.get(gamestr.toUpperCase());
-    if(gres == null) return null;
-    return gres;
-}
-export function joinGame(gameid: GameID, player_name: string): PlayerID {
-    const game = games.get(gameid);
-    if(game == null) throw new MsgError("Game not found");
+export function joinGame(game: GameState, gameid: GameID, player_name: string): PlayerID {
     if(game.players.some(pl => pl.id === player_name)) return player_name as PlayerID;
     if(game.state !== "ALLOW_JOINING") throw new MsgError("No new players are allowed to join the game.");
     if(game.players.length >= MAX_PLAYERS) throw new MsgError("The game is full.");
@@ -85,9 +69,7 @@ export function joinGame(gameid: GameID, player_name: string): PlayerID {
     // success
     return plid;
 }
-export function onPlayerDisconnected(gameid: GameID, player_id: PlayerID): void {
-    const game = games.get(gameid);
-    if(game == null) return; // nothing to do
+export function onPlayerDisconnected(game: GameState, gameid: GameID, player_id: PlayerID): void {
     if(game.state === "ALLOW_JOINING") {
         // remove the player
         game.players = game.players.filter(pl => pl.id !== player_id);
@@ -98,15 +80,11 @@ export function onPlayerDisconnected(gameid: GameID, player_id: PlayerID): void 
         player.connected = false;
     }
 }
-export function choosePalette(send: SendCB, gameid: GameID, playerid: PlayerID, palette: number) {
-    const game = games.get(gameid);
-    if(game == null) throw new MsgError("Game not found");
+export function choosePalette(game: GameState, send: SendCB, gameid: GameID, playerid: PlayerID, palette: number) {
     if(game.state !== "ALLOW_JOINING") throw new MsgError("You cannot change your palette at this time");
     baseChoosePalette(send, gameid, game, playerid, palette);
 }
-export function markReady(send: SendCB, gameid: GameID, playerid: PlayerID, value: boolean) {
-    const game = games.get(gameid);
-    if(game == null) throw new MsgError("Game not found");
+export function markReady(game: GameState, send: SendCB, gameid: GameID, playerid: PlayerID, value: boolean) {
     const pl = game.players.find(pl => pl.id === playerid);
     if(pl == null) throw new MsgError("You are not in the game");
     pl.ready = value;
@@ -159,11 +137,9 @@ function startGame(send: SendCB, gameid: GameID, game: GameState) {
         return {palette: game.players[i].selected_palette!, images: []};
     });
 
-    catchupAll(send, gameid);
+    catchupAll(game, send, gameid);
 }
-export function postPrompt(send: SendCB, gameid: GameID, playerid: PlayerID, prompt: string) {
-    const game = games.get(gameid);
-    if(game == null) throw new MsgError("Game not found");
+export function postPrompt(game: GameState, send: SendCB, gameid: GameID, playerid: PlayerID, prompt: string) {
     if(game.state !== "CHOOSE_PROMPTS") throw new MsgError("You cannot choose a prompt at this time.");
     const playerindex = game.players.findIndex(p => p.id == playerid);
     if(playerindex === -1) throw new MsgError("Player not found");
@@ -181,7 +157,7 @@ function startDrawRound(send: SendCB, gameid: GameID, game: GameState, num: numb
     }
     game.state = "DRAW_FRAME";
     game.draw_frame_num = num;
-    catchupAll(send, gameid);
+    catchupAll(game, send, gameid);
 }
 function startReview(send: SendCB, gameid: GameID, game: GameState) {
     reviewNext(send, gameid, game);
@@ -199,14 +175,12 @@ function reviewNext(send: SendCB, gameid: GameID, game: GameState) {
         endGame(send, gameid);
         return;
     }
-    catchupAll(send, gameid);
+    catchupAll(game, send, gameid);
 }
 export function endGame(send: SendCB, gameid: GameID) {
     send(gameid, {kind: "game_over"});
 }
-export function getContextFrames(gameid: GameID, playerid: PlayerID): ContextFrames {
-    const game = games.get(gameid);
-    if(game == null) throw new MsgError("Game not found");
+export function getContextFrames(game: GameState, gameid: GameID, playerid: PlayerID): ContextFrames {
     if(game.state !== "DRAW_FRAME") throw new MsgError("You cannot choose a prompt at this time.");
     const playerindex = game.players.findIndex(p => p.id == playerid);
     if(playerindex === -1) throw new MsgError("Player not found");
@@ -224,9 +198,7 @@ export function getContextFrames(gameid: GameID, playerid: PlayerID): ContextFra
         ask_for_frames: game.config.frame_count,
     };
 }
-export function postFrames(send: SendCB, gameid: GameID, playerid: PlayerID, frames: string[]) {
-    const game = games.get(gameid);
-    if(game == null) throw new MsgError("Game not found");
+export function postFrames(game: GameState, send: SendCB, gameid: GameID, playerid: PlayerID, frames: string[]) {
     if(game.state !== "DRAW_FRAME") throw new MsgError("You cannot choose a prompt at this time.");
     if(frames.length !== game.config.frame_count) throw new MsgError("The wrong number of frames were submitted.");
     const playerindex = game.players.findIndex(p => p.id == playerid);
@@ -251,21 +223,11 @@ export function postFrames(send: SendCB, gameid: GameID, playerid: PlayerID, fra
         startDrawRound(send, gameid, game, game.draw_frame_num! + 1);
     }
 }
-export function saveGame(gameid: GameID): void {
-    const game = games.get(gameid);
-    if(game == null) throw new MsgError("Game not found");
-    Bun.write("saved-games/"+gameid+".json", JSON.stringify(game), {createPath: true});
-}
 
-export function catchupAll(send: SendCB, gameid: GameID) {
-    const game = games.get(gameid);
-    if(game == null) throw new MsgError("Game not found");
-
-    for(const player of game.players) catchupPlayer(send, gameid, player.id);
+export function catchupAll(game: GameState, send: SendCB, gameid: GameID) {
+    for(const player of game.players) catchupPlayer(game, send, gameid, player.id);
 }
-export function catchupPlayer(send: SendCB, gameid: GameID, playerid: PlayerID) {
-    const game = games.get(gameid);
-    if(game == null) throw new MsgError("Game not found");
+export function catchupPlayer(game: GameState, send: SendCB, gameid: GameID, playerid: PlayerID) {
     const pl = game.players.find(pl => pl.id === playerid);
     if(pl == null) throw new MsgError("You are not in the game");
 
@@ -282,7 +244,7 @@ export function catchupPlayer(send: SendCB, gameid: GameID, playerid: PlayerID) 
         send(pl.id, {kind: "show_prompt_sel"});
     }else if(game.state === "DRAW_FRAME") {
         // TODO: check if the client has already drawn the frames
-        send(pl.id, {kind: "show_draw_frame", context: getContextFrames(gameid, playerid)});
+        send(pl.id, {kind: "show_draw_frame", context: getContextFrames(game, gameid, playerid)});
         // the client will ask to getContextFrames()
     }else if(game.state === "REVIEW_GUESS") {
         throw new Error("TODO impl review_guess");
@@ -311,30 +273,33 @@ export type Ctx = {
     send: SendCB,
 };
 
-export const animgame_interface: GameInterface<GameState> = {
+export const animgame_interface = anyinterface<GameState>({
+    create() {
+        return createGame();
+    },
     join(game_id, game, player_name) {
-        return joinGame(game_id, player_name);
+        return joinGame(game, game_id, player_name);
     },
     catchup(ctx) {
-        catchupPlayer(ctx.send, ctx.gameid, ctx.playerid);
+        catchupPlayer(ctx.game, ctx.send, ctx.gameid, ctx.playerid);
     },
     onDisconnect(ctx) {
-        onPlayerDisconnected(ctx.gameid, ctx.playerid);
+        onPlayerDisconnected(ctx.game, ctx.gameid, ctx.playerid);
     },
     onMessage(ctx, msg) {
         if(msg.kind === "mark_ready") {
-            markReady(ctx.send, ctx.gameid, ctx.playerid, msg.value);
+            markReady(ctx.game, ctx.send, ctx.gameid, ctx.playerid, msg.value);
         }else if(msg.kind === "submit_prompt") {
-            postPrompt(ctx.send, ctx.gameid, ctx.playerid, msg.prompt);
+            postPrompt(ctx.game, ctx.send, ctx.gameid, ctx.playerid, msg.prompt);
         }else if(msg.kind === "submit_animation") {
-            postFrames(ctx.send, ctx.gameid, ctx.playerid, msg.frames);
+            postFrames(ctx.game, ctx.send, ctx.gameid, ctx.playerid, msg.frames);
         }else if(msg.kind === "choose_palette") {
-            choosePalette(ctx.send, ctx.gameid, ctx.playerid, msg.palette);
+            choosePalette(ctx.game, ctx.send, ctx.gameid, ctx.playerid, msg.palette);
         }else{
             throw new MsgError("Command not supported: `"+(msg as RecieveMessage).kind+"`");
         }
     },
-};
+});
 
 // if we implement this genericly, we can literally just tell the client
 // "show this scene for this amount of time" and have all logic on the

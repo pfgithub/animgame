@@ -1,8 +1,45 @@
 import { join, resolve } from "path";
-import { joinGame, onPlayerDisconnected, lookupGame, catchupPlayer, MsgError, markReady, postPrompt, postFrames, saveGame, choosePalette, animgame_interface } from "./games/animgame";
+import { MsgError, choosePalette, animgame_interface } from "./games/animgame";
 import type { BroadcastMsg, GameID, PlayerID, RecieveMessage } from "../../shared/shared";
+import type { AnyGameInterface, AnyGameState, GameInterface } from "./gamelib";
 
 // consider hono so we can run on cloudflare pages?
+
+type GameData = {
+    state: AnyGameState,
+    proto: AnyGameInterface,
+};
+function saveGame(gameid: GameID): void {
+    const game = lookupGameFromID(gameid);
+    Bun.write("saved-games/"+gameid+".json", JSON.stringify(game.state), {createPath: true});
+}
+
+function createGame(proto: GameInterface<AnyGameState>) {
+    const gameid = crypto.randomUUID() as GameID;
+    if(games.has(gameid)) throw new Error("UUID COLLISION");
+    const gamestr = "ABCD";
+    if(game_id_map.has(gamestr)) throw new MsgError("Failed to create game");
+    games.set(gameid, {
+        state: proto.create(),
+        proto: proto,
+    });
+    game_id_map.set(gamestr, gameid);
+    return gamestr;
+}
+const game_id_map = new Map<string, GameID>();
+const games = new Map<GameID, GameData>();
+console.log("Game code: "+createGame(animgame_interface));
+
+export function lookupGameFromCode(gamestr: string): null | GameID {
+    const gres = game_id_map.get(gamestr.toUpperCase());
+    if(gres == null) return null;
+    return gres;
+}
+function lookupGameFromID(gameid: GameID): GameData {
+    const gres = games.get(gameid);
+    if(gres == null) throw new MsgError("Game not found");
+    return gres;
+}
 
 const BASE_DIR = resolve("../client/public");
 
@@ -46,12 +83,13 @@ const server = Bun.serve<WebsocketData>({
         maxPayloadLength: 1024 * 1024 * 32, // 32MB
         message(ws, message) {
             try {
+                const game = lookupGameFromID(ws.data.game_id);
                 if(typeof message !== "string") throw new MsgError("Message was not a string");
                 const msg_val = JSON.parse(message) as RecieveMessage;
-                animgame_interface.onMessage({
+                game.proto.onMessage({
                     send,
                     gameid: ws.data.game_id,
-                    game: 0 as never,
+                    game: game.state,
                     playerid: ws.data.player_id,
                 }, msg_val);
                 saveGame(ws.data.game_id);
@@ -64,25 +102,35 @@ const server = Bun.serve<WebsocketData>({
             }
         },
         open(ws) {
-            ws.subscribe(ws.data.game_id);
-            ws.subscribe(ws.data.player_id);
-            console.log("connect: "+ws.data.player_id);
-            animgame_interface.catchup({
-                send,
-                gameid: ws.data.game_id,
-                game: 0 as never,
-                playerid: ws.data.player_id,
-            });
-            saveGame(ws.data.game_id);
+            try {
+                const game = lookupGameFromID(ws.data.game_id);
+                ws.subscribe(ws.data.game_id);
+                ws.subscribe(ws.data.player_id);
+                console.log("connect: "+ws.data.player_id);
+                game.proto.catchup({
+                    send,
+                    gameid: ws.data.game_id,
+                    game: game.state,
+                    playerid: ws.data.player_id,
+                });
+                saveGame(ws.data.game_id);
+            }catch(e) {
+                if(e instanceof MsgError) {
+                    send(ws.data.player_id, {kind: "error", message: e.message});
+                }else{
+                    throw e;
+                }
+            }
         },
         close(ws, code, reason) {
+            const game = lookupGameFromID(ws.data.game_id);
             ws.unsubscribe(ws.data.game_id);
             ws.unsubscribe(ws.data.player_id);
             console.log("disconnect: "+ws.data.player_id+": `"+reason+"` ("+code+")");
-            animgame_interface.onDisconnect({
+            game.proto.onDisconnect({
                 send,
                 gameid: ws.data.game_id,
-                game: 0 as never,
+                game: game.state,
                 playerid: ws.data.player_id,
             });
             saveGame(ws.data.game_id);
@@ -101,9 +149,10 @@ const server = Bun.serve<WebsocketData>({
                 return new Response("Missing codeparam | nameparam", {status: 404});
             }
 
-            const game_id = lookupGame(codeparam) ?? (codeparam as GameID);
+            const game_id = lookupGameFromCode(codeparam) ?? (codeparam as GameID);
             console.log("try join game: "+game_id);
-            const player_id = animgame_interface.join(game_id, 0 as never, nameparam);
+            const game = lookupGameFromID(game_id);
+            const player_id = game.proto.join(game_id, game.state, nameparam);
 
             if(!server.upgrade(request, {
                 data: {
@@ -111,10 +160,10 @@ const server = Bun.serve<WebsocketData>({
                     player_id,
                 } satisfies WebsocketData,
             })) {
-                animgame_interface.onDisconnect({
+                game.proto.onDisconnect({
                     send,
                     gameid: game_id,
-                    game: 0 as never,
+                    game: game.state,
                     playerid: player_id,
                 });
                 return new Response("Upgrade failed", {status: 400});
