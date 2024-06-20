@@ -1,4 +1,4 @@
-import {palettes, type BroadcastMsg, type Frame, type FrameSet, type ImgSrlz} from "../../shared/shared.ts";
+import {palettes, shuffle, type BroadcastMsg, type Frame, type FrameSet, type ImgSrlz} from "../../shared/shared.ts";
 import { connect, disconnect, sendMessage } from "./connection.tsx";
 import { drawcanvas, drawpage, unsrlzImg } from "./drawpage.tsx";
 import { removeLocalStorage, getLocalStorage, localstorage_current_game, localstorage_name, replacepage, rootel, setLocalStorage, wsEventHandler, type LocalstorageCurrentGame, signal, onupdateAndNow } from "./util.tsx";
@@ -341,6 +341,7 @@ function maxSquareSize(num_images: number, w: number, h: number) {
     return res;
 }
 function showgridandguess(images: {id: string, palette: number, value: string}[], in_correct: string[], ready: boolean) {
+    shuffle(images);
     const correct = signal(in_correct);
     // let's make this one a fullscreen ui
     // image grid left, text chat right
