@@ -52,5 +52,7 @@ Transparent multiplayer?
   join or leave at any time and it works with no effort.
 
 DrawGrid:
-- [ ] Score players based on time (say 2000 points - 1000 points based on which # guesser you were, and 0 points if you give up)
+- [ ] Score is backwards? `rescale(20 * 1000, 10 * 1000, 2 * 60 * 1000, 2000, 500)` outputs a number greater than 2000 for some reason
+- [ ] If you click 'Give up', everyone else has the game end but you don't?
+- [x] Score players based on time (say 2000 points - 1000 points based on which # guesser you were, and 0 points if you give up)
 - [ ] Show scores at the end

@@ -119,13 +119,14 @@ function awardPoints(game: GameState, drawer: Player, guesser: Player): void {
 
     drawer.points += Math.round(2000 / game.players.length);
     // TODO: instead of this, score based on if you got it first, second, third, ...
-    guesser.points += Math.round(rescale(
+    guesser.points += Math.max(500, Math.min(2000, Math.round(rescale(
         time_it_took,
         game.config.guessing_min_time_ms,
         game.config.guessing_max_time_ms,
         2000,
         500,
-    ));
+        // these are backwards. TODO: figure it out?
+    ))));
 }
 
 export const drawgrid_interface: GameInterface<GameState> = {
