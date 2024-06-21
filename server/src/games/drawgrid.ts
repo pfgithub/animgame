@@ -107,7 +107,7 @@ function checkGridAndGuessOver(ctx: GameCtxNoPlayer<GameState>): void {
     }
 }
 function rescale(t: number, prev_min: number, prev_max: number, next_min: number, next_max: number): number {
-    return ((t - prev_min) / (prev_max - prev_min)) * (next_min - next_max) + next_min;
+    return ((t - prev_min) / (prev_max - prev_min)) * (next_max - next_min) + next_min;
 }
 
 /// 2000 points for guessing within guessing_min_time_ms
