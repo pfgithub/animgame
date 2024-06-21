@@ -57,3 +57,4 @@ DrawGrid:
 - [ ] If you click 'Give up', everyone else has the game end but you don't? Or something like that, what happened there?
 - [x] Score players based on time (say 2000 points - 1000 points based on which # guesser you were, and 0 points if you give up)
 - [ ] Show scores at the end
+- [ ] After all drawings are completed, go to a screen that explains the next phase and has a 'ready' button. Once everyone is ready, we can do a countdown and start.
