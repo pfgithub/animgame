@@ -3,6 +3,7 @@ import type { RecieveMessage } from "../../shared/shared";
 
 export function connect(name: string, code: string): void {
     disconnect();
+    let expecting_disconnect = false;
     const wsurl = new URL(location.href);
     wsurl.pathname = "/websocket";
     wsurl.search = "?name="+encodeURIComponent(name)+"&code="+encodeURIComponent(code);
@@ -16,6 +17,7 @@ export function connect(name: string, code: string): void {
         alert("websocket error. refresh.");
     });
     wss.addEventListener("close", e => {
+        if(expecting_disconnect) return;
         console.log("close", e);
         alert("websocket closed. refresh.");
     });
@@ -31,7 +33,10 @@ export function connect(name: string, code: string): void {
         console.log(" ->", msg);
         wss.send(JSON.stringify(msg));
     };
-    disconnect = () => wss.close();
+    disconnect = () => {
+        expecting_disconnect = true;
+        wss.close();
+    };
 }
 function handleMessage(msg: RecieveMessage) {
     document.querySelectorAll(".data-wsevent_handler").forEach(node => {

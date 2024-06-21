@@ -114,9 +114,28 @@ function handleMessage(msg: BroadcastMsg) {
         showchooseprompt(msg.choices, msg.choice);
     }else if(msg.kind === "grid_and_guess") {
         showgridandguess(msg.images, msg.guessed, msg.given_up);
+    }else if(msg.kind === "fullscreen_message") {
+        if(msg.game_over) {
+            disconnect();
+            gameover();
+        }
+        rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+            <div style="display:flex;flex-direction:column;gap:1rem">
+                <div>Game end.</div>
+                <div id="updateme" style="white-space:pre-wrap"></div>
+                <button id="homebtn">Home</button>
+            </div>
+        </div></div>`;
+        rootel.querySelector("#updateme")!.textContent = msg.text;
+        const homebtnel: HTMLButtonElement = rootel.querySelector("#homebtn")!;
+        if(msg.game_over) {
+            homebtnel.onclick = () => entergamecode();
+        }else{
+            homebtnel.remove();
+        }
     }else if(msg.kind === "game_over") {
-        disconnect();
-        showend();
+        gameover();
+        entergamecode();
     }
 }
 document.body.appendChild(wsEventHandler(handleMessage));
@@ -201,14 +220,9 @@ function showdrawsent() {
         </div>
     </div></div>`;
 }
-function showend() {
+function gameover() {
+    disconnect();
     removeLocalStorage(localstorage_current_game);
-    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
-        <div style="display:flex;flex-direction:column;gap:1rem">
-            <div>Game end.</div>
-        </div>
-    </div></div>`;
-    entergamecode();
 }
 function showpromptsel() {
     rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">

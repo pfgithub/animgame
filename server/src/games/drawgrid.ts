@@ -54,9 +54,12 @@ type Player = {
 type GameState = {
     config: {
         word_choices: number,
+        guessing_min_time_ms: number,
+        guessing_max_time_ms: number,
     },
     state: GameStateEnum,
     players: Player[],
+    guess_start_time_ms?: number,
 };
 
 
@@ -88,6 +91,7 @@ function startDrawPhase(ctx: GameCtxNoPlayer<GameState>): void {
 }
 function startGuessPhase(ctx: GameCtxNoPlayer<GameState>): void {
     ctx.game.state = "GRID_AND_GUESS";
+    ctx.game.guess_start_time_ms = Date.now();
     baseResetReady(ctx.game);
     catchupAll(ctx);
 }
@@ -102,12 +106,35 @@ function checkGridAndGuessOver(ctx: GameCtxNoPlayer<GameState>): void {
         catchupAll(ctx);
     }
 }
+function rescale(t: number, prev_min: number, prev_max: number, next_min: number, next_max: number): number {
+    return ((t - prev_min) / (prev_max - prev_min)) * (next_min - next_max) + next_min;
+}
+
+/// 2000 points for guessing within guessing_min_time_ms
+/// 500 points for guessing at more than guessing_max_time_ms
+/// scaled in the middle
+/// 2000 / players_count points for someone guessing your drawing correctly
+function awardPoints(game: GameState, drawer: Player, guesser: Player): void {
+    const time_it_took = Date.now() - game.guess_start_time_ms!;
+
+    drawer.points += Math.round(2000 / game.players.length);
+    // TODO: instead of this, score based on if you got it first, second, third, ...
+    guesser.points += Math.round(rescale(
+        time_it_took,
+        game.config.guessing_min_time_ms,
+        game.config.guessing_max_time_ms,
+        2000,
+        500,
+    ));
+}
 
 export const drawgrid_interface: GameInterface<GameState> = {
     create(): GameState {
         return {
             config: {
                 word_choices: 3,
+                guessing_min_time_ms: 10 * 1000,
+                guessing_max_time_ms: 2 * 60 * 1000,
             },
             state: "JOIN_AND_PALETTE",
             players: [],
@@ -165,7 +192,13 @@ export const drawgrid_interface: GameInterface<GameState> = {
                 }),
             });
         }else if(ctx.game.state === "REVEAL_SCORES") {
-            throw new MsgError("TODO reveal_scores");
+            ctx.send(ctx.playerid, {
+                kind: "fullscreen_message",
+                text: "Score:\n"+ctx.game.players.sort((a, b) => a.points - b.points).map(player => {
+                    return player.name + ": " + player.points;
+                }).join("\n"),
+                game_over: true,
+            });
         }else throw new MsgError("TODO impl catchup for state: "+ctx.game.state);
     },
     onDisconnect(ctx) {
@@ -222,6 +255,7 @@ export const drawgrid_interface: GameInterface<GameState> = {
                     if(player.guessed_images.indexOf(ismatch.id) === -1) {
                         // ✓!
                         player.guessed_images.push(ismatch.id);
+                        awardPoints(ctx.game, ismatch, player);
                         ctx.send(player.id, {kind: "grid_correct_guess", image: ismatch.id});
                         checkGridAndGuessOver(ctx);
                     }

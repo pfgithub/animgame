@@ -65,6 +65,10 @@ export type BroadcastMsg = {
 } | {
     kind: "grid_correct_guess",
     image: string,
+} | {
+    kind: "fullscreen_message",
+    text: string,
+    game_over: boolean,
 };
 export type RecieveMessage = {
     kind: "mark_ready",
