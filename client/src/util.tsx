@@ -95,16 +95,23 @@ export type LocalstorageCurrentGame = {
     player_id: PlayerID,
 };
 
+const __storage = new Map<string, string>();
 export function setLocalStorage(name: string, value: string) {
+    try {__storage.set(name, value);} catch {}
     try {sessionStorage.setItem(name, value);} catch {}
     try {localStorage.setItem(name, value);} catch {}
 }
 export function removeLocalStorage(name: string) {
+    try {__storage.delete(name);} catch {}
     try {sessionStorage.removeItem(name);} catch {}
     try {localStorage.removeItem(name);} catch {}
 }
 export function getLocalStorage(name: string): string | null {
     // prefer sessionStorage over localStorage
+    try {
+        const res = __storage.get(name);
+        if(res != null) return res;
+    } catch {}
     try {
         const res = sessionStorage.getItem(name);
         if(res != null) return res;

@@ -1,12 +1,13 @@
 import type { RecieveMessage } from "../../shared/shared";
+import { getLocalStorage, localstorage_current_game, type LocalstorageCurrentGame } from "./util";
 
 
-export function connect(name: string, code: string): void {
+export function connect(name: string, code: string, player_uuid?: string): void {
     disconnect();
     let expecting_disconnect = false;
     const wsurl = new URL(location.href);
     wsurl.pathname = "/websocket";
-    wsurl.search = "?name="+encodeURIComponent(name)+"&code="+encodeURIComponent(code);
+    wsurl.search = "?name="+encodeURIComponent(name)+"&code="+encodeURIComponent(code)+(player_uuid != null ? "&player_uuid="+encodeURIComponent(player_uuid) : "");
     const wss = new WebSocket(wsurl);
     wss.addEventListener("open", e => {
         console.log("open", e);
@@ -19,7 +20,12 @@ export function connect(name: string, code: string): void {
     wss.addEventListener("close", e => {
         if(expecting_disconnect) return;
         console.log("close", e);
+        // can't autoreconnect until we impl drawframe saving
         alert("websocket closed. refresh.");
+        sendMessage = (msg: RecieveMessage) => {
+            alert("Not connected, reload.");
+        };
+        disconnect = () => {};
     });
     wss.addEventListener("message", e => {
         const msg_data = e.data;
