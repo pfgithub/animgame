@@ -289,6 +289,12 @@ function makereadybtn(label: string, ready_state: boolean): HTMLButtonElement {
     return readybtn;
 }
 function showreviewreveal(frameset: FrameSet, ready: boolean) {
+    /*
+    {
+    temp1.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    copy("data:image/svg+xml;base64,"+btoa(temp1.outerHTML))
+    }
+    */
     const palette = palettes[frameset.palette];
     // it would be really nice to break out drawpage so the svg
     // component is seperate so we can use it here
@@ -308,7 +314,6 @@ function showreviewreveal(frameset: FrameSet, ready: boolean) {
     prompthere.textContent = ""+frameset.prompt;
     const svgcontainer: HTMLDivElement = rootel.querySelector("#svgcontainer")!;
     const mysvg = drawcanvas();
-    svgcontainer.appendChild(mysvg);
 
     // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/animate
     // animate x pos, calcMode = discrete
@@ -340,6 +345,13 @@ function showreviewreveal(frameset: FrameSet, ready: boolean) {
     animation.setAttribute("repeatCount", "indefinite");
     animation.setAttribute("calcMode", "discrete");
     root_group.appendChild(animation);
+
+    mysvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const svgstr = "data:image/svg+xml,"+encodeURIComponent(mysvg.outerHTML);
+    const svgimg = document.createElement("img");
+    svgimg.src = svgstr;
+    svgimg.setAttribute("style", "display:block;aspect-ratio:1 / 1;width:100%");
+    svgcontainer.appendChild(svgimg);
 }
 function showchooseprompt(choices: string[], choice_initial?: string) {
     const current_choice = signal(choice_initial);
