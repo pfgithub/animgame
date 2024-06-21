@@ -12,6 +12,8 @@ TODO:
 - [x] Display errors
 - [x] Indicate your and other people's selections in palettes
 - [ ] Button to toggle onion skinning
+  - [ ] Alternatively, remove onion skinning entirely and
+    copy the previous frame into the next frame?
 - [ ] Review guess logic in game.ts
   - We can do the dixit/jackbox thing for guesses:
   - Everyone writes their prompt (except the first drawer
