@@ -33,6 +33,7 @@ Now, use `ngrok` or similar to let other people join.
 ngrok http http://localhost:2390
 # don't use cloudflared it kills websocket connections or something
 # because we don't have draw reconnecting yet it's broken
+# https://community.cloudflare.com/t/websockets-keep-disconnecting-for-sites-proxied-via-cloudflare/639858/3
 # cloudflared tunnel run animgame-dev
 ```
 
