@@ -38,13 +38,14 @@ Known issues:
 - Because we're using websockets instead of UDP, outdated packets will queue up to be sent. This can be mitigated by checking the websocket fill amount in bun maybe? It's also probably not a problem with such a low volume of data.
 
 More games to make:
-- Linegame. On your turn, you can draw one line. End.
-- Sentencegame. On your turn, you write one sentence. Next player only sees the last sentence. Make a story.
-- Drawprompts. Pairs get the same prompt, each draw a thing, vote for the best.
-- DrawGrid : Everyone gets a prompt (choice of 3 words) and draws a
+- [ ] Linegame. On your turn, you can draw one line. End.
+- [ ] Sentencegame. On your turn, you write one sentence. Next player only sees the last sentence. Make a story.
+- [ ] Drawprompts. Pairs get the same prompt, each draw a thing, vote for the best.
+- [x] DrawGrid : Everyone gets a prompt (choice of 3 words) and draws a
   picture. Then, all the pictures are shown in a grid (random order)
   & you gotta guess them all. Points for being guessed first & guessing
   first.
+- [ ] PoisionDraw : Draw a thing. Someone else sees the drawing and writes the poision word. First person gets a little time to modify their drawing make sure people don't guess the poision word. Guessing. If you guess the real word, you get points & drawer gets points. If you guess the poison word, poisoner gets points but no one else does.
 
 Transparent multiplayer?
 - It would be nice to have a multiplayer setup in code where anyone can
