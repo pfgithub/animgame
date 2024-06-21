@@ -30,11 +30,33 @@ function entergamecode() {
                     </div>
                 </label>
             </form>
+            <details>
+                <summary>Create lobby</summary>
+                <div style="display:flex;flex-direction:column">
+                    <button id="AnimGameBtn">
+                        <div>AnimGame</div>
+                        <div>Make a bunch of little animations with your friends</div>
+                    </button>
+                    <button id="DrawGridBtn">
+                        <div>DrawGrid</div>
+                        <div>Compete to see who's drawings are guessed the fastest</div>
+                    </button>
+                </div>
+            </details>
             <div>
                 Past Games: [TODO]
             </div>
         </div>
     </div></div>`;
+
+    const animgame_btn: HTMLButtonElement = rootel.querySelector("#AnimGameBtn")!;
+    animgame_btn.onclick = () => {
+        alert("TODO");
+    };
+    const drawgrid_btn: HTMLButtonElement = rootel.querySelector("#DrawGridBtn")!;
+    drawgrid_btn.onclick = () => {
+        alert("TODO");
+    };
 
     const maindiv: HTMLDivElement = rootel.querySelector("#maindiv")!;
     const nameinput: HTMLInputElement = rootel.querySelector("#nameinput")!;
