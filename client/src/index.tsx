@@ -113,7 +113,7 @@ function choosepalettesandready(in_taken_palettes: number[]) {
     rootel.innerHTML = `<div id="mainel" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
         <div id="readycontainer" style="display:flex;flex-direction:column;gap:1rem">
             <div>ChoosePalettesAndReady</div>
-            <div id="palettes" style="display:flex;flex-direction:column;gap:0.25rem"></div>
+            <div id="palettes" class="choosepalettesandready--onecolwhenthin" style="display:grid;gap:0.25rem"></div>
         </div>
     </div></div>`;
     const mainel: HTMLDivElement = rootel.querySelector("#mainel")!;
@@ -128,8 +128,10 @@ function choosepalettesandready(in_taken_palettes: number[]) {
     }))
     const palettesel: HTMLDivElement = rootel.querySelector("#palettes")!;
     const readycontainer: HTMLButtonElement = rootel.querySelector("#readycontainer")!;
-    readycontainer.appendChild(makereadybtn("Ready", false));
-    for(const [i, palette] of palettes.entries()) {
+    readycontainer.insertBefore(makereadybtn("Ready", false), readycontainer.firstChild);
+    const shufpal = [...palettes.entries()];
+    shuffle(shufpal);
+    for(const [i, palette] of shufpal) {
         const palettebtn = document.createElement("button");
         palettebtn.setAttribute("style", "display:flex;width:100%;border:none;background-color:transparent;padding:0");
         palettebtn.innerHTML = `
