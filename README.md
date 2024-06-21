@@ -31,8 +31,9 @@ Now, use `ngrok` or similar to let other people join.
 
 ```
 ngrok http http://localhost:2390
-# or
-cloudflared tunnel run animgame-dev
+# don't use cloudflared it kills websocket connections or something
+# because we don't have draw reconnecting yet it's broken
+# cloudflared tunnel run animgame-dev
 ```
 
 Code is `ABCD`
