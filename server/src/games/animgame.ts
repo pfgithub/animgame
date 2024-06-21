@@ -13,6 +13,7 @@ type GamePlayer = {
     name: string,
     selected_palette?: number, // only one player can select each palette
     ready: boolean,
+    draw_completed?: boolean,
 };
 
 type GameStateEnum = (
@@ -25,7 +26,8 @@ type GameStateEnum = (
 
 type GameState = {
     config: {
-        frame_count: number,
+        first_round_frame_count: number,
+        subsequent_rounds_frame_count: number,
         draw_your_own_prompt: "NO" | "LAST" | "FIRST",
     },
     state: GameStateEnum,
@@ -39,7 +41,8 @@ type GameState = {
 export function createGame(): GameState {
     return {
         config: {
-            frame_count: 2,
+            first_round_frame_count: 2,
+            subsequent_rounds_frame_count: 1,
             draw_your_own_prompt: "LAST",
         },
         state: "ALLOW_JOINING",
@@ -111,6 +114,7 @@ export function postPrompt(game: GameState, send: SendCB, gameid: GameID, player
     }
 }
 function startDrawRound(send: SendCB, gameid: GameID, game: GameState, num: number) {
+    for(const player of game.players) player.draw_completed = false;
     if(num > game.players.length - (game.config.draw_your_own_prompt === "NO" ? 1 : 0)) {
         startReview(send, gameid, game);
         return;
@@ -146,29 +150,27 @@ export function getContextFrames(game: GameState, gameid: GameID, playerid: Play
     if(playerindex === -1) throw new MsgError("Player not found");
     const frameindex = modframes(game, playerindex);
     const fset = game.frames[frameindex];
-    if(fset.images.length !== ((game.draw_frame_num ?? 0) - 1) * game.config.frame_count) {
-        throw new MsgError("Frames were already submitted");
-    }
-    const resframes = fset.images.slice(fset.images.length - game.config.frame_count);
+    const resframes = fset.images.slice(fset.images.length - game.config.first_round_frame_count);
     const owner = game.players[frameindex]!;
     return {
         palette: owner.selected_palette!,
         start_frame_index: fset.images.length - resframes.length,
         prompt: resframes.length === 0 || owner.id === playerid ? fset.prompt : undefined,
         frames: resframes,
-        ask_for_frames: game.config.frame_count,
+        ask_for_frames: resframes.length === 0 ? game.config.first_round_frame_count : game.config.subsequent_rounds_frame_count,
     };
 }
 export function postFrames(game: GameState, send: SendCB, gameid: GameID, playerid: PlayerID, frames: string[]) {
     if(game.state !== "DRAW_FRAME") throw new MsgError("You cannot choose a prompt at this time.");
-    if(frames.length !== game.config.frame_count) throw new MsgError("The wrong number of frames were submitted.");
     const playerindex = game.players.findIndex(p => p.id == playerid);
     if(playerindex === -1) throw new MsgError("Player not found");
+    const player = game.players[playerindex];
+    if(player.draw_completed) throw new MsgError("You already submitted a drawing");
     const frameindex = modframes(game, playerindex);
     const fset = game.frames[frameindex];
-    const target_frame_count = (game.draw_frame_num ?? 0) * game.config.frame_count;
-    if(fset.images.length !== target_frame_count - game.config.frame_count) {
-        throw new MsgError("Frames were already submitted");
+    const target_frame_count = fset.images.length === 0 ? game.config.first_round_frame_count : game.config.subsequent_rounds_frame_count;
+    if(frames.length !== target_frame_count) {
+        throw new Error("Wrong number of submitted frames");
     }
     for(const frame of frames) {
         fset.images.push({
@@ -176,11 +178,9 @@ export function postFrames(game: GameState, send: SendCB, gameid: GameID, player
             value: frame,
         });
     }
-    if(fset.images.length !== target_frame_count) {
-        throw new Error("Assertion failure");
-    }
-    send(playerid, {kind: "show_frame_accepted"});
-    if(game.frames.every(frame => frame.images.length === target_frame_count)) {
+    player.draw_completed = true;
+    catchupPlayer(game, send, gameid, playerid);
+    if(game.players.every(player => player.draw_completed)) {
         startDrawRound(send, gameid, game, game.draw_frame_num! + 1);
     }
 }
@@ -197,9 +197,11 @@ export function catchupPlayer(game: GameState, send: SendCB, gameid: GameID, pla
     }else if(game.state === "CHOOSE_PROMPTS") {
         send(pl.id, {kind: "show_prompt_sel"});
     }else if(game.state === "DRAW_FRAME") {
-        // TODO: check if the client has already drawn the frames
-        send(pl.id, {kind: "show_draw_frame", context: getContextFrames(game, gameid, playerid)});
-        // the client will ask to getContextFrames()
+        if(pl.draw_completed) {
+            send(playerid, {kind: "show_frame_accepted"});
+        }else{
+            send(pl.id, {kind: "show_draw_frame", context: getContextFrames(game, gameid, playerid)});
+        }
     }else if(game.state === "REVIEW_GUESS") {
         throw new Error("TODO impl review_guess");
     }else if(game.state === "REVIEW_REVEAL") {
