@@ -14,6 +14,8 @@ TODO:
 - [ ] Button to toggle onion skinning
   - [ ] Alternatively, remove onion skinning entirely and
     copy the previous frame into the next frame?
+- [ ] Add animation speed slider in review (it won't be an image tag anymore but we can add a download link)
+- [ ] Add download button in review (svg for now)
 - [ ] Review guess logic in game.ts
   - We can do the dixit/jackbox thing for guesses:
   - Everyone writes their prompt (except the first drawer
