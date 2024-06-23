@@ -163,7 +163,7 @@ const server = Bun.serve<WebsocketData>({
             }
 
             const game_id = lookupGameFromCode(codeparam) ?? (codeparam as GameID);
-            console.log("try join game: "+game_id);
+            console.log("try join game: "+game_id+" player "+nameparam);
             const game = lookupGameFromID(game_id);
             const player_id = game.proto.join(game_id, game.state, nameparam);
 
