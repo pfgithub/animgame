@@ -18,30 +18,23 @@ TODO:
 - [ ] Add animation speed slider in review (it won't be an image tag anymore but we can add a download link)
   - [ ] Add download button in review (svg for now)
 - [ ] Change line size buttons to be little circles instead of numbers
-- [ ] Review guess logic in game.ts
-  - We can do the dixit/jackbox thing for guesses:
-  - Everyone writes their prompt (except the first drawer
-    and the person who wrote the prompt), then people guess
-    which one is real
-- [ ] Review guess screen
-- [ ] In a three player game, maybe have players 
+- [ ] Indicate which frames are yours and which aren't
+- [ ] Show total frame count
 - [ ] Keep in-progress drawings on reload
 - [ ] Keep in-progress text fields on reload
 - [ ] Display errors in a toast
 - [ ] Show wait status: (5/10) if there are 10 players and
        5 have submitted. Show names of who has submitted and
        who hasn't.
-- [ ] After games are over, save them and show your game history.
-       We can use an access token in localstorage for that.
-  - We can store a list of played game ids, and then the server can
-    store game ids -> game overview screen
+- [ ] Add a final 'review' screen that shows every animation with download links and who's prompt and such
+- [ ] After games are over, save them to history. Players can view the game by its UUID (saved in localstorage) and see the review screen.
 - [ ] Allow another client to take over a player who is disconnected
   - eg if your phone runs out of battery, you need to reconnect
     otherwise the game can't go on
   - or if you fall asleep, someone needs to take your place
 - [ ] If you are in ready phase and you reload and reconnect, it uses your former UUID as your player name :/ fix this by seperating player name vs uuid in the query parameter
-- [ ] Maybe: Copy the previous frame into the next frame so you don't have to redraw the whole background. Or maybe not.
 - [ ] It may be possible to go in a pattern that isn't a circle. Some kind of way to say "who's worked on the drawing so far" - find who hasn't yet and pick randomly. and preserve that the prompt author goes last. maybe.
+- [ ] Figure out how to deploy!
 
 Known issues:
 - Because we're using websockets instead of UDP, outdated packets will queue up to be sent. This can be mitigated by checking the websocket fill amount in bun maybe? It's also probably not a problem with such a low volume of data.
