@@ -11,6 +11,7 @@ TODO:
 - [x] Reconnect by reloading
 - [x] Display errors
 - [x] Indicate your and other people's selections in palettes
+- [ ] Don't gray out when you switch to other frames
 - [ ] Button to toggle onion skinning
   - [ ] Alternatively, remove onion skinning entirely and
     copy the previous frame into the next frame?
