@@ -201,10 +201,10 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     const topbuttons: HTMLDivElement = rootel.querySelector("#buttonshere2")!;
     const mybuttons: HTMLDivElement = rootel.querySelector("#buttonshere")!;
     const dset = (d: (v: boolean) => void) => onupdateAndNow(cfg, () => d(readonly()));
-    addLinewidthButton(topbuttons, 1, cfg, dset);
-    addLinewidthButton(topbuttons, 2, cfg, dset);
-    addLinewidthButton(topbuttons, 3, cfg, dset);
-    addLinewidthButton(topbuttons, 4, cfg, dset);
+    addLinewidthButton(topbuttons, 1, cfg);
+    addLinewidthButton(topbuttons, 2, cfg);
+    addLinewidthButton(topbuttons, 3, cfg);
+    addLinewidthButton(topbuttons, 4, cfg);
     const tb0 = document.createElement("div");
     tb0.setAttribute("style", "flex:1");
     topbuttons.appendChild(tb0);
@@ -221,7 +221,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         mysvg.appendChild(popv);
     }, dset);
     for(const color of palette) {
-        addColorButton(mybuttons, color, cfg, dset);
+        addColorButton(mybuttons, color, cfg);
     }
     addOtherButton(mybuttons, "set bg", () => {
         cfg.value.background = cfg.value.color;
