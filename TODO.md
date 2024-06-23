@@ -39,6 +39,7 @@ TODO:
   - or if you fall asleep, someone needs to take your place
 - [ ] If you are in ready phase and you reload and reconnect, it uses your former UUID as your player name :/ fix this by seperating player name vs uuid in the query parameter
 - [ ] Maybe: Copy the previous frame into the next frame so you don't have to redraw the whole background. Or maybe not.
+- [ ] It may be possible to go in a pattern that isn't a circle. Some kind of way to say "who's worked on the drawing so far" - find who hasn't yet and pick randomly. and preserve that the prompt author goes last. maybe.
 
 Known issues:
 - Because we're using websockets instead of UDP, outdated packets will queue up to be sent. This can be mitigated by checking the websocket fill amount in bun maybe? It's also probably not a problem with such a low volume of data.
