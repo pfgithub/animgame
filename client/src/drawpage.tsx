@@ -303,7 +303,9 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     // want?
     // and when you pinch in to zoom it's sending cancels but we're missing
     // one
-    mysvg.style.touchAction = "pinch-zoom";
+
+    // in firefox with a tablet using windows ink, the tablet scrolls the page? even though touch-action is none?
+    mysvg.style.touchAction = navigator.userAgent.includes("Firefox") ? "none" : "pinch-zoom";
     mysvg.addEventListener("pointerdown", (e: PointerEvent) => {
         if(readonly()) return;
         e.preventDefault();
