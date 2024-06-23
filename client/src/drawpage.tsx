@@ -305,6 +305,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     // one
 
     // in firefox with a tablet using windows ink, the tablet scrolls the page? even though touch-action is none?
+    // this doesn't even fix that issue. setting none fixes on mobile zooming in creates ghost lines.
     mysvg.style.touchAction = navigator.userAgent.includes("Firefox") ? "none" : "pinch-zoom";
     mysvg.addEventListener("pointerdown", (e: PointerEvent) => {
         if(readonly()) return;
