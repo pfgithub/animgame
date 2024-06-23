@@ -11,6 +11,7 @@ export type ContextFrames = {
     frames: Frame[],
     start_frame_index: number,
     ask_for_frames: number,
+    request_uuid?: string, // TODO: for saving in-progress draw
 };
 export type BroadcastMsg = {
     kind: "choose_palettes_and_ready",
