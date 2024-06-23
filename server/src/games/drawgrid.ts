@@ -259,6 +259,7 @@ export const drawgrid_interface: GameInterface<GameState> = {
                         awardPoints(ctx.game, ismatch, player);
                         ctx.send(player.id, {kind: "grid_correct_guess", image: ismatch.id});
                         checkGridAndGuessOver(ctx);
+                        ctx.send(ctx.gameid, {kind: "chat_message", value: player.name+" guessed "+ismatch.name+"'s drawing"});
                     }
                 }
             }else{
