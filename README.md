@@ -34,6 +34,7 @@ ngrok http http://localhost:2390
 # don't use cloudflared it kills websocket connections or something
 # because we don't have draw reconnecting yet it's broken
 # https://community.cloudflare.com/t/websockets-keep-disconnecting-for-sites-proxied-via-cloudflare/639858/3
+# https://stackoverflow.com/questions/39668410/whats-disconnecting-my-websocket-connection-cloudflare-apaches-mod-proxy
 # cloudflared tunnel run animgame-dev
 ```
 
