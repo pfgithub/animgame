@@ -479,7 +479,12 @@ const demo_frames: Frame[] = [
         artist: "una" as any,
     }
 ];
-if(location.hash === "#demo/choosepalettesandready") {
+declare global {
+    var filecont: unknown;
+}
+if(typeof filecont !== "undefined") {
+    alert("TODO filecont");
+}else if(location.hash === "#demo/choosepalettesandready") {
     choosepalettesandready([1, 6, 4]);
 }else if(location.hash === "#demo/drawpage") {
     replacepage(drawpage({

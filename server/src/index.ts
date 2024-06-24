@@ -50,6 +50,7 @@ function lookupGameFromID(gameid: GameID): GameData {
     return gres;
 }
 
+const CLIENT_DIR = resolve("../client");
 const BASE_DIR = resolve("../client/public");
 
 type ServeDirCfg = {
@@ -57,24 +58,6 @@ type ServeDirCfg = {
     path: string,
     suffixes?: string[],
 };
-
-async function serveFromDir(config: ServeDirCfg) {
-    const basePath = join(config.directory, config.path);
-    const suffixes = config.suffixes ?? ["", ".html", "index.html"];
-    for (const suffix of suffixes) {
-        try {
-            const pathWithSuffix = resolve(join(basePath, suffix));
-            if (!pathWithSuffix.startsWith(BASE_DIR)) {
-                continue;
-            }
-            const file = Bun.file(pathWithSuffix);
-            if (await file.exists()) {
-                return new Response(Bun.file(pathWithSuffix));
-            }
-        } catch (err) { }
-    }
-    return null;
-}
 
 type WebsocketData = {
     game_id: GameID,
@@ -187,7 +170,8 @@ const server = Bun.serve<WebsocketData>({
 
         if(pathname == "/index.tsx") {
             const buildres = await Bun.build({
-                entrypoints: ["../client/src/index.tsx"],
+                entrypoints: [CLIENT_DIR+"/src/index.tsx"],
+                target: "browser",
             });
             if(!buildres.success) {
                 console.log(buildres.logs);
@@ -196,12 +180,24 @@ const server = Bun.serve<WebsocketData>({
             const result = buildres.outputs[0];
             return new Response(result, {headers: {'Content-Type': "text/javascript"}});
         }
+        if(pathname.startsWith("/game/")) {
+            const gameid = pathname.substring(6).toLowerCase();
+            if(gameid.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)) {
+                // valid
+                console.log("valid game id: "+gameid);
+                const fileres = Bun.file("./important-saved-games/"+gameid+".json");
+                const htmlcont = await Bun.file(CLIENT_DIR+"/src/index.html").text();
+                const filecont = await fileres.json();
+                // rather than passing filecont directly, maybe we extract out the info we want to give and send just that?
+                return new Response(
+                    htmlcont.replace("<!-- GAMECONT -->", "<script>filecont="+JSON.stringify(filecont)+"</script>"),
+                    {headers: {'Content-Type': "text/html"}},
+                );
+            }
+            return new Response("Not Found", { status: 404 });
+        }
+        if(pathname === "/") return new Response(Bun.file(CLIENT_DIR+"/src/index.html"));
         console.log("request: "+pathname);
-        const staticResponse = await serveFromDir({
-            directory: BASE_DIR,
-            path: pathname,
-        });
-        if (staticResponse) return staticResponse;
         return new Response("Not Found", { status: 404 });
     }
 });
