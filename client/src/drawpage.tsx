@@ -156,6 +156,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         cfg.value.frame = i;
         const cannedframe = context.frames[i]?.value;
         const framev: ImgSrlz = (cannedframe != null ? JSON.parse(cannedframe) : null) ?? cfg.value.uncanned_frames[i - context.frames.length] ?? ({
+            bgimg: [],
             undo_strokes: [],
             redo_strokes: [],
             background_color_index: palette.indexOf(cfg.value.background),
@@ -260,6 +261,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     }, d => onupdateAndNow(cfg, () => d(cfg.value.playing)));
     const srlz = () => {
         const srlzres: ImgSrlz = {
+            bgimg: [],
             undo_strokes: [],
             redo_strokes: [],
             background_color_index: palette.indexOf(cfg.value.background),

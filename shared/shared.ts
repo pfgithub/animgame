@@ -120,6 +120,13 @@ export const palettes: Palette[] = [
 ];
 
 export type ImgSrlz = {
+    // plan:
+    // - include all previous strokes as bgimg?
+    // - draw that in a layer behind?
+    // - sure?
+    // - we just need to compute bgimg in two places
+    
+    bgimg: StrokeSrlz[],
     undo_strokes: StrokeSrlz[],
     redo_strokes: StrokeSrlz[],
     background_color_index: number,
