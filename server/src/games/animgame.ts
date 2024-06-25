@@ -29,6 +29,7 @@ type GameState = {
         first_round_frame_count: number,
         subsequent_rounds_frame_count: number,
         draw_your_own_prompt: "NO" | "LAST" | "FIRST",
+        redraw_every_frame: "REDRAW" | "COPY",
     },
     state: GameStateEnum,
     draw_frame_num?: number,
@@ -44,6 +45,7 @@ export function createGame(): GameState {
             first_round_frame_count: 2,
             subsequent_rounds_frame_count: 1,
             draw_your_own_prompt: "LAST",
+            redraw_every_frame: "COPY",
         },
         state: "ALLOW_JOINING",
         players: [],
@@ -158,6 +160,7 @@ export function getContextFrames(game: GameState, gameid: GameID, playerid: Play
         prompt: resframes.length === 0 || owner.id === playerid ? fset.prompt : undefined,
         frames: resframes,
         ask_for_frames: resframes.length === 0 ? game.config.first_round_frame_count : game.config.subsequent_rounds_frame_count,
+        redraw_every_frame: game.config.redraw_every_frame,
     };
 }
 export function postFrames(game: GameState, send: SendCB, gameid: GameID, playerid: PlayerID, frames: string[]) {

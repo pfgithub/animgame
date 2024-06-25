@@ -12,6 +12,7 @@ export type ContextFrames = {
     start_frame_index: number,
     ask_for_frames: number,
     request_uuid?: string, // TODO: for saving in-progress draw
+    redraw_every_frame: "REDRAW" | "COPY",
 };
 export type BroadcastMsg = {
     kind: "choose_palettes_and_ready",
@@ -126,7 +127,7 @@ export type ImgSrlz = {
     // - sure?
     // - we just need to compute bgimg in two places
     
-    bgimg: StrokeSrlz[],
+    bgimg?: StrokeSrlz[],
     undo_strokes: StrokeSrlz[],
     redo_strokes: StrokeSrlz[],
     background_color_index: number,

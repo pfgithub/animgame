@@ -493,6 +493,7 @@ if(typeof filecont !== "undefined") {
         frames: demo_frames,
         ask_for_frames: 2,
         start_frame_index: 4,
+        redraw_every_frame: "COPY",
     }));
 }else if(location.hash === "#demo/showreviewreveal") {
     showreviewreveal({

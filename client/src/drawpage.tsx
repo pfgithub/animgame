@@ -35,15 +35,18 @@ export function unsrlzStroke(stroke: StrokeSrlz, palette: Palette): SVGPathEleme
     updatePath(renderv, stroke);
     return renderv;
 };
-export function unsrlzImg(parent: SVGElement, srlz: ImgSrlz, palette: Palette): SVGPathElement[] {
+export function unsrlzImg(parent: SVGElement, srlz: ImgSrlz, palette: Palette): {
+    linesbgimg: SVGPathElement[],
+    linesv: SVGPathElement[],
+ } {
     // 1. convert strokes
+    const lbgi = (srlz.bgimg ?? []).map(stroke => unsrlzStroke(stroke, palette));
     const vstrokes = srlz.undo_strokes.map(stroke => unsrlzStroke(stroke, palette));
-    // 2. apply all undo strokes
-    for(const stroke of vstrokes) {
-        parent.appendChild(stroke);
-    }
+    // 2. apply all bgimg & undo strokes
+    for(const stroke of lbgi) parent.appendChild(stroke);
+    for(const stroke of vstrokes) parent.appendChild(stroke);
 
-    return vstrokes;
+    return {linesbgimg: lbgi, linesv: vstrokes};
 }
 const rendersrlzos = (srlz: ImgSrlz) => {
     const res_group = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -71,8 +74,9 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         playing: false,
     });
     const readonly = () => cfg.value.frame < context.frames.length || cfg.value.playing;
-    let linesv: SVGPathElement[] = [];
-    let linesr: SVGPathElement[] = [];
+    let bgimg_strokes: SVGPathElement[] = [];
+    let undo_strokes: SVGPathElement[] = [];
+    let redo_strokes: SVGPathElement[] = [];
     {
         cfg.value.color = palette[0];
         const lastcannedframe = context.frames[context.frames.length - 1]?.value;
@@ -148,12 +152,10 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         mysvg.innerHTML = "";
 
         // load
-        if(cfg.value.onion_skinning) loadframe_internal(i - 1, true);
+        if(context.redraw_every_frame === "REDRAW" && cfg.value.onion_skinning) loadframe_internal(i - 1, true);
         loadframe_internal(i, false);
     };
-    const loadframe_internal = (i: number, onionskin: boolean) => {
-        if(i < 0) return;
-        cfg.value.frame = i;
+    const getframedata = (i: number): ImgSrlz => {
         const cannedframe = context.frames[i]?.value;
         const framev: ImgSrlz = (cannedframe != null ? JSON.parse(cannedframe) : null) ?? cfg.value.uncanned_frames[i - context.frames.length] ?? ({
             bgimg: [],
@@ -161,6 +163,16 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
             redo_strokes: [],
             background_color_index: palette.indexOf(cfg.value.background),
         } satisfies ImgSrlz);
+        return framev;
+    }
+    const loadframe_internal = (i: number, onionskin: boolean) => {
+        if(i < 0) return;
+        cfg.value.frame = i;
+        const pfdata = getframedata(i - 1);
+        const framev: ImgSrlz = getframedata(i);
+        if(context.redraw_every_frame === "COPY") {
+            framev.bgimg = [...pfdata.bgimg ?? [], ...pfdata.undo_strokes];
+        }
         if(onionskin) rendersrlzos(framev); else rendersrlz(framev);
         cfg.update();
     }
@@ -210,15 +222,15 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     tb0.setAttribute("style", "flex:1");
     topbuttons.appendChild(tb0);
     addOtherButton(topbuttons, "undo", () => {
-        const popv = linesv.pop();
+        const popv = undo_strokes.pop();
         if(!popv) return;
-        linesr.push(popv);
+        redo_strokes.push(popv);
         popv.remove();
     }, dset);
     addOtherButton(topbuttons, "redo", () => {
-        const popv = linesr.pop();
+        const popv = redo_strokes.pop();
         if(!popv) return;
-        linesv.push(popv);
+        undo_strokes.push(popv);
         mysvg.appendChild(popv);
     }, dset);
     for(const color of palette) {
@@ -231,12 +243,12 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     const tb1 = document.createElement("div");
     tb1.setAttribute("style", "flex:1");
     mybuttons.appendChild(tb1);
-    addOtherButton(mybuttons, "clear", () => {
-        if(!confirm("CLEAR? really??")) return;
-        while(linesv.length > 0) {
-            const itm = linesv.shift()!;
+    addOtherButton(mybuttons, "reset", () => {
+        if(!confirm("RESET FRAME? really??")) return;
+        while(undo_strokes.length > 0) {
+            const itm = undo_strokes.shift()!;
             itm.remove();
-            linesr.push(itm);
+            redo_strokes.push(itm);
         }
     }, dset);
     addOtherButton(mybuttons, "submit", () => {
@@ -273,8 +285,9 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
                 a.push(data);
             }
         };
-        as(srlzres.undo_strokes, linesv);
-        as(srlzres.redo_strokes, linesr);
+        as(srlzres.bgimg!, bgimg_strokes);
+        as(srlzres.undo_strokes, undo_strokes);
+        as(srlzres.redo_strokes, redo_strokes);
 
         return srlzres;
     }
@@ -290,8 +303,10 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
     };
     const rendersrlz = (srlz: ImgSrlz) => {
         // 1. update undo/redo lists
-        linesv = unsrlzImg(mysvg, srlz, palette);
-        linesr = srlz.redo_strokes.map(stroke => unsrlzStroke(stroke, palette));
+        const urslzres = unsrlzImg(mysvg, srlz, palette);
+        bgimg_strokes = urslzres.linesbgimg;
+        undo_strokes = urslzres.linesv;
+        redo_strokes = srlz.redo_strokes.map(stroke => unsrlzStroke(stroke, palette));
 
         // 2. set background color
         cfg.value.background = palette[srlz.background_color_index];
@@ -353,7 +368,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
             },
             onpointerup(e) {
                 addpoint(e);
-                linesv.push(renderv);
+                undo_strokes.push(renderv);
             },
             onpointercancel() {
                 renderv.remove();
