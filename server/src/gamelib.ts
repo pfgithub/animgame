@@ -82,7 +82,7 @@ export type GameCtx<T> = GameCtxNoPlayer<T> & {
     playerid: PlayerID,
 };
 export interface GameInterface<T> {
-    create(): T,
+    create(initial_game_code: string): T,
     join(game_id: GameID, game: T, player_name: string): PlayerID,
     catchup(ctx: GameCtx<T>): void,
     onDisconnect(ctx: GameCtx<T>): void,

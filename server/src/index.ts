@@ -28,7 +28,7 @@ function createGame(proto: GameInterface<AnyGameState>, force_code?: string, for
     const gamestr = force_code ?? [...rba].map(toletBiased).join("");
     if(game_id_map.has(gamestr)) throw new MsgError("Failed to create game");
     games.set(gameid, {
-        state: force_id != null ? JSON.parse(readFileSync("saved-games/"+force_id+".json", "utf-8")) : proto.create(),
+        state: force_id != null ? JSON.parse(readFileSync("saved-games/"+force_id+".json", "utf-8")) : proto.create(gamestr),
         proto: proto,
     });
     game_id_map.set(gamestr, gameid);

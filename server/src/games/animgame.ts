@@ -36,10 +36,11 @@ type GameState = {
     review_frame_num?: number,
     players: GamePlayer[],
     frames: FrameSet[],
+    initial_game_code: string,
 };
 
 
-export function createGame(): GameState {
+export function createGame(initial_game_code: string): GameState {
     return {
         config: {
             first_round_frame_count: 2,
@@ -50,6 +51,7 @@ export function createGame(): GameState {
         state: "ALLOW_JOINING",
         players: [],
         frames: [],
+        initial_game_code,
     };
 }
 export function joinGame(game: GameState, gameid: GameID, player_name: string): PlayerID {
@@ -196,7 +198,7 @@ export function catchupPlayer(game: GameState, send: SendCB, gameid: GameID, pla
     if(pl == null) throw new MsgError("You are not in the game");
 
     if(game.state === "ALLOW_JOINING") {
-        send(pl.id, {kind: "choose_palettes_and_ready", taken_palettes: game.players.filter(p => p.selected_palette != null).map(p => p.selected_palette!)});
+        send(pl.id, {kind: "choose_palettes_and_ready", game_code: game.initial_game_code, taken_palettes: game.players.filter(p => p.selected_palette != null).map(p => p.selected_palette!)});
     }else if(game.state === "CHOOSE_PROMPTS") {
         send(pl.id, {kind: "show_prompt_sel"});
     }else if(game.state === "DRAW_FRAME") {
@@ -233,8 +235,8 @@ export type Ctx = {
 };
 
 export const animgame_interface: GameInterface<GameState> = {
-    create() {
-        return createGame();
+    create(initial_game_code: string) {
+        return createGame(initial_game_code);
     },
     join(game_id, game, player_name) {
         return joinGame(game, game_id, player_name);

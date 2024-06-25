@@ -17,6 +17,7 @@ export type ContextFrames = {
 export type BroadcastMsg = {
     kind: "choose_palettes_and_ready",
     taken_palettes: number[],
+    game_code: string,
 } | {
     kind: "show_prompt_sel",
 } | {

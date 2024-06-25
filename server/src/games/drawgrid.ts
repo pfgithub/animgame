@@ -60,6 +60,7 @@ type GameState = {
     },
     state: GameStateEnum,
     players: Player[],
+    initial_game_code: string,
 };
 
 
@@ -134,7 +135,7 @@ function awardPoints(ctx: GameCtxNoPlayer<GameState>, artist: Player, guesser: P
 }
 
 export const drawgrid_interface: GameInterface<GameState> = {
-    create(): GameState {
+    create(initial_game_code: string): GameState {
         return {
             config: {
                 word_choices: 3,
@@ -143,6 +144,7 @@ export const drawgrid_interface: GameInterface<GameState> = {
             },
             state: "JOIN_AND_PALETTE",
             players: [],
+            initial_game_code,
         };
     },
     join(game_id, game, player_name) {
@@ -162,7 +164,7 @@ export const drawgrid_interface: GameInterface<GameState> = {
     },
     catchup(ctx) {
         if(ctx.game.state === "JOIN_AND_PALETTE") {
-            ctx.send(ctx.playerid, {kind: "choose_palettes_and_ready", taken_palettes: ctx.game.players.filter(pl => pl.selected_palette != null).map(pl => pl.selected_palette!)});
+            ctx.send(ctx.playerid, {kind: "choose_palettes_and_ready", game_code: ctx.game.initial_game_code, taken_palettes: ctx.game.players.filter(pl => pl.selected_palette != null).map(pl => pl.selected_palette!)});
         }else if(ctx.game.state === "CHOOSE_PROMPT") {
             const player = ctx.game.players.find(pl => pl.id === ctx.playerid);
             if(player == null) throw new MsgError("Player not found");

@@ -99,7 +99,7 @@ function handleMessage(msg: BroadcastMsg) {
     }else if(msg.kind === "error") {
         alert("Error: "+msg.message);
     }else if(msg.kind === "choose_palettes_and_ready") {
-        choosepalettesandready(msg.taken_palettes);
+        choosepalettesandready(msg.game_code, msg.taken_palettes);
     }else if(msg.kind === "show_prompt_sel") {
         showpromptsel();
     }else if(msg.kind === "show_prompt_accepted") {
@@ -148,15 +148,18 @@ function showguessprompt(image: string, prompts: string[]) {
     // - Guess the prompt:
     // - list of prompts in a style like the palette buttons
 }
-function choosepalettesandready(in_taken_palettes: number[]) {
+function choosepalettesandready(game_code: string, in_taken_palettes: number[]) {
     let your_palette = -1;
     const taken_palettes = signal(in_taken_palettes);
     rootel.innerHTML = `<div id="mainel" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
-        <div id="readycontainer" style="display:flex;flex-direction:column;gap:1rem">
-            <div>ChoosePalettesAndReady</div>
+        <div style="display:flex;flex-direction:column;gap:1rem">
+            <div>Game Code: <b id="gamecodehere"></b></div>
+            <div id="readybefore">ChoosePalettesAndReady</div>
             <div id="palettes" class="choosepalettesandready--onecolwhenthin" style="display:grid;gap:0.25rem"></div>
         </div>
     </div></div>`;
+    const gchere: HTMLElement = rootel.querySelector("#gamecodehere")!;
+    gchere.textContent = game_code;
     const mainel: HTMLDivElement = rootel.querySelector("#mainel")!;
     mainel.appendChild(wsEventHandler(ev => {
         if(ev.kind === "update_taken_palettes") {
@@ -168,8 +171,8 @@ function choosepalettesandready(in_taken_palettes: number[]) {
         }
     }))
     const palettesel: HTMLDivElement = rootel.querySelector("#palettes")!;
-    const readycontainer: HTMLButtonElement = rootel.querySelector("#readycontainer")!;
-    readycontainer.insertBefore(makereadybtn("Ready", false), readycontainer.firstChild);
+    const readybefore: HTMLButtonElement = rootel.querySelector("#readybefore")!;
+    readybefore.parentElement!.insertBefore(makereadybtn("Ready", false), readybefore);
     const shufpal = [...palettes.entries()];
     shuffle(shufpal);
     for(const [i, palette] of shufpal) {
@@ -518,7 +521,7 @@ declare global {
 if(typeof filecont !== "undefined") {
     alert("TODO filecont");
 }else if(location.hash === "#demo/choosepalettesandready") {
-    choosepalettesandready([1, 6, 4]);
+    choosepalettesandready("WXYZ", [1, 6, 4]);
 }else if(location.hash === "#demo/drawpage") {
     replacepage(drawpage({
         palette: 6,
