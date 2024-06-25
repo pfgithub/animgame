@@ -175,6 +175,7 @@ export const drawgrid_interface: GameInterface<GameState> = {
                     frames: [],
                     ask_for_frames: 1,
                     prompt: player.prompt!,
+                    redraw_every_frame: "REDRAW",
                 }});
             }
         }else if(ctx.game.state === "GRID_AND_GUESS") {
