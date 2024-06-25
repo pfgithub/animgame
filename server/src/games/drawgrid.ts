@@ -200,7 +200,7 @@ export const drawgrid_interface: GameInterface<GameState> = {
         }else if(ctx.game.state === "REVEAL_SCORES") {
             ctx.send(ctx.playerid, {
                 kind: "fullscreen_message",
-                text: "Score:\n"+ctx.game.players.sort((a, b) => a.points - b.points).map(player => {
+                text: "Score:\n"+[...ctx.game.players].sort((a, b) => b.points - a.points).map(player => {
                     return player.name + ": " + player.points;
                 }).join("\n"),
                 game_over: true,
