@@ -59,9 +59,9 @@ Transparent multiplayer?
 
 DrawGrid:
 - [x] Score is backwards? `rescale(20 * 1000, 10 * 1000, 2 * 60 * 1000, 2000, 500)` outputs a number greater than 2000 for some reason
-- [ ] If you click 'Give up', everyone else has the game end but you don't? Or something like that, what happened there?
-- [x] Score players based on time (say 2000 points - 1000 points based on which # guesser you were, and 0 points if you give up)
+- [ ] BUG: If you click 'Give up', everyone else has the game end but you don't? Or something like that, what happened there?
+- [x] ~~Score players based on time (say 2000 points - 1000 points based on which # guesser you were, and 0 points if you give up)~~ superseeded
 - [x] Show scores at the end
-- [ ] Score based on what # you got the image. Score the same for which images are guessed first for the author points
+- [x] Score based on what # you got the image. Score the same for which images are guessed first for the author points
 - [ ] After all drawings are completed, go to a screen that explains the next phase and has a 'ready' button. Once everyone is ready, we can do a countdown and start.
 - [ ] Show who has guessed which images

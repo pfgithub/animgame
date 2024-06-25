@@ -64,6 +64,7 @@ export type BroadcastMsg = {
 } | {
     kind: "chat_message",
     value: string,
+    color: string,
 } | {
     kind: "grid_correct_guess",
     image: string,

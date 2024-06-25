@@ -495,6 +495,8 @@ function showgridandguess(images: {id: string, palette: number, value: string}[]
         if(msg.kind === "chat_message") {
             const cmdiv = document.createElement("div");
             cmdiv.textContent = msg.value;
+            cmdiv.style.color = msg.color;
+            cmdiv.style.whiteSpace = "pre-wrap";
             msgshere.insertBefore(cmdiv, msgshere.firstChild);
         }
     }));

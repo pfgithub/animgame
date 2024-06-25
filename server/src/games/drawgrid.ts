@@ -48,6 +48,7 @@ type Player = {
     prompt?: string,
     image?: string,
     guessed_images?: string[],
+    image_guessed_by?: string[],
     points: number,
     ready: boolean,
 };
@@ -59,7 +60,6 @@ type GameState = {
     },
     state: GameStateEnum,
     players: Player[],
-    guess_start_time_ms?: number,
 };
 
 
@@ -91,7 +91,6 @@ function startDrawPhase(ctx: GameCtxNoPlayer<GameState>): void {
 }
 function startGuessPhase(ctx: GameCtxNoPlayer<GameState>): void {
     ctx.game.state = "GRID_AND_GUESS";
-    ctx.game.guess_start_time_ms = Date.now();
     baseResetReady(ctx.game);
     catchupAll(ctx);
 }
@@ -106,27 +105,32 @@ function checkGridAndGuessOver(ctx: GameCtxNoPlayer<GameState>): void {
         catchupAll(ctx);
     }
 }
-function rescale(t: number, prev_min: number, prev_max: number, next_min: number, next_max: number): number {
-    return ((t - prev_min) / (prev_max - prev_min)) * (next_max - next_min) + next_min;
+
+function nth(num: number): string {
+    // doesn't work past 20
+    return num + (["st", "nd", "rd"][num - 1] ?? "th");
 }
+function awardPoints(ctx: GameCtxNoPlayer<GameState>, artist: Player, guesser: Player): void {
+    // determine which number
+    // - for the guesser:
+    //   - were they first? second? third? to guess the author's drawing
+    // - for the drawer:
+    //   - did the guesser guess it first? second? third?
 
-/// 2000 points for guessing within guessing_min_time_ms
-/// 500 points for guessing at more than guessing_max_time_ms
-/// scaled in the middle
-/// 2000 / players_count points for someone guessing your drawing correctly
-function awardPoints(game: GameState, drawer: Player, guesser: Player): void {
-    const time_it_took = Date.now() - game.guess_start_time_ms!;
+    const guesser_nguess = guesser.guessed_images!.length - 1;
+    const drawing_nguess = artist.image_guessed_by!.length - 1;
+    const guessing_individual_points_worth = 1000;
+    const drawing_total_points_worth = Math.round(guessing_individual_points_worth / ctx.game.players.length);
 
-    drawer.points += Math.round(2000 / game.players.length);
-    // TODO: instead of this, score based on if you got it first, second, third, ...
-    guesser.points += Math.max(500, Math.min(2000, Math.round(rescale(
-        time_it_took,
-        game.config.guessing_min_time_ms,
-        game.config.guessing_max_time_ms,
-        2000,
-        500,
-        // these are backwards. TODO: figure it out?
-    ))));
+    const guessing_points = guessing_individual_points_worth + Math.round(guessing_individual_points_worth * (1 - (drawing_nguess / ctx.game.players.length)));
+    const artist_points = drawing_total_points_worth + Math.round(drawing_total_points_worth * (1 - (guesser_nguess / ctx.game.players.length)));
+    guesser.points += guessing_points;
+    artist.points += artist_points;
+
+    ctx.send(ctx.gameid, {kind: "chat_message", color: "darkgreen", value:
+        guesser.name+" ("+(guesser_nguess+1)+" / "+(ctx.game.players.length-1)+") "+
+        " was the "+nth(drawing_nguess+1)+" person to guess "+
+        artist.name+"'s drawing!\n  Points awarded: guesser +"+guessing_points+", artist: "+artist_points});
 }
 
 export const drawgrid_interface: GameInterface<GameState> = {
@@ -254,17 +258,19 @@ export const drawgrid_interface: GameInterface<GameState> = {
             if(ismatch != null) {
                 if(ismatch.id !== player.id) {
                     player.guessed_images ??= [];
-                    if(player.guessed_images.indexOf(ismatch.id) === -1) {
+                    ismatch.image_guessed_by ??= [];
+                    if(player.guessed_images.indexOf(ismatch.id) === -1 && ismatch.image_guessed_by.indexOf(player.id) === -1) {
                         // ✓!
                         player.guessed_images.push(ismatch.id);
-                        awardPoints(ctx.game, ismatch, player);
+                        ismatch.image_guessed_by.push(player.id);
+
+                        awardPoints(ctx, ismatch, player);
                         ctx.send(player.id, {kind: "grid_correct_guess", image: ismatch.id});
                         checkGridAndGuessOver(ctx);
-                        ctx.send(ctx.gameid, {kind: "chat_message", value: player.name+" guessed "+ismatch.name+"'s drawing"});
                     }
                 }
             }else{
-                ctx.send(ctx.gameid, {kind: "chat_message", value: player.name+": "+msg.message});
+                ctx.send(ctx.gameid, {kind: "chat_message", color: "black", value: player.name+": "+msg.message});
             }
         }else{
             throw new MsgError("Command not supported: `"+(msg as RecieveMessage).kind+"`");
