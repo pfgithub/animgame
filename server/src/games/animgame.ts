@@ -163,6 +163,7 @@ export function getContextFrames(game: GameState, gameid: GameID, playerid: Play
         frames: resframes,
         ask_for_frames: resframes.length === 0 ? game.config.first_round_frame_count : game.config.subsequent_rounds_frame_count,
         redraw_every_frame: game.config.redraw_every_frame,
+        request_uuid: playerid+":"+frameindex+":"+fset.images.length,
     };
 }
 export function postFrames(game: GameState, send: SendCB, gameid: GameID, playerid: PlayerID, frames: string[]) {

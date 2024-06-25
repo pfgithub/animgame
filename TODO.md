@@ -15,11 +15,11 @@ TODO:
 - [x] Add 'COPY' mode where you don't have to redraw every frame
 - [x] Add animation speed slider in review (it won't be an image tag anymore but we can add a download link)
 - [x] Add download button in review (svg for now)
+- [x] Keep in-progress drawings on reload
 - [ ] In 'REDRAW' mode, add a button to toggle onion skin
 - [ ] Change line size buttons to be little circles instead of numbers
 - [ ] Indicate which frames are yours and which aren't
 - [ ] Show total frame count
-- [ ] Keep in-progress drawings on reload
 - [ ] Keep in-progress text fields on reload
 - [ ] Display errors in a toast
 - [ ] Show wait status: (5/10) if there are 10 players and
@@ -71,3 +71,4 @@ Gobal:
 
 - [ ] Make a simple jsx or function call reactive ui lib, or use react or solid js
 - [ ] Migrate to tailwind | unocss
+- [ ] Implement game creation on the server. Just has to do validation, create game, and return the specified data

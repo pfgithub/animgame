@@ -11,7 +11,7 @@ export type ContextFrames = {
     frames: Frame[],
     start_frame_index: number,
     ask_for_frames: number,
-    request_uuid?: string, // TODO: for saving in-progress draw
+    request_uuid: string, // TODO: for saving in-progress draw
     redraw_every_frame: "REDRAW" | "COPY",
 };
 export type BroadcastMsg = {

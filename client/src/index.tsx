@@ -682,6 +682,7 @@ if(typeof filecont !== "undefined") {
         ask_for_frames: 2,
         start_frame_index: 4,
         redraw_every_frame: "COPY",
+        request_uuid: "0506fd68-780f-4e3a-be68-8374ae1fe3b8",
     }));
 }else if(location.hash === "#demo/showreviewreveal") {
     showreviewreveal({

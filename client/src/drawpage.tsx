@@ -1,11 +1,15 @@
 import { getStroke } from "perfect-freehand";
 import { palettes, type ContextFrames, type ImgSrlz, type Palette, type StrokeSrlz, type Vec2 } from "../../shared/shared.ts";
-import { addPtrEvHs, autosaveHandler, onupdateAndNow, signal, type Signal } from "./util.tsx";
+import { addPtrEvHs, autosaveHandler, getLocalStorage, localstorage_drawpage_saved_drawing, onupdateAndNow, setLocalStorage, signal, type Signal } from "./util.tsx";
 import { sendMessage } from "./connection.tsx";
 
 const IMGW = 1000;
 const IMGH = 1000;
 
+type LocalstorageSavedDrawing = {
+    request_id: string,
+    uncanned_frames: ImgSrlz[],
+};
 type Cfg = {
     line_width: number,
     color: string,
@@ -55,11 +59,13 @@ const rendersrlzos = (srlz: ImgSrlz) => {
 };
 
 export function drawpage(context: ContextFrames): HTMLDivElement {
-    // TODO: save in local storage in case you reload
-    // TODO: we're going to load arbitrary lines so make sure we can
-    //           render arbitrary lines safely
-    //
-    // : we can call srlz() on an interval for localstorage
+    const prev_saved_drawing = getLocalStorage(localstorage_drawpage_saved_drawing);
+    let prev_saved_drawing_dec: LocalstorageSavedDrawing | null = null;
+    if(prev_saved_drawing != null) try {prev_saved_drawing_dec = JSON.parse(prev_saved_drawing)} catch(e) {
+        console.error("Failed to load saved drawing", e);
+    };
+    console.log("PSG", prev_saved_drawing_dec);
+    if(prev_saved_drawing_dec?.request_id !== context.request_uuid) prev_saved_drawing_dec = null;
 
     const rootel = document.createElement("div");
 
@@ -69,7 +75,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         color: "",
         background: "",
         frame: context.frames.length,
-        uncanned_frames: [],
+        uncanned_frames: prev_saved_drawing_dec?.uncanned_frames ?? [],
         onion_skinning: true,
         playing: false,
     });
@@ -144,9 +150,9 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
             cfg.value.uncanned_frames[curr_frame - context.frames.length] = srlz();
         }
     };
-    const loadframe = (i: number) => {
+    const loadframe = (i: number, lfcg?: {skip_save: boolean}) => {
         // save
-        save();
+        if(!lfcg?.skip_save) save();
 
         // clear
         mysvg.innerHTML = "";
@@ -202,8 +208,11 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
 
     const rootitm: HTMLDivElement = rootel.querySelector("#rootitm")!;
     rootitm.appendChild(autosaveHandler(() => {
-        // localStorage.setItem("animgame-saved-drawing", JSON.stringify(srlz()));
-        // console.log("saved");
+        save();
+        setLocalStorage(localstorage_drawpage_saved_drawing, JSON.stringify({
+            request_id: context.request_uuid,
+            uncanned_frames: cfg.value.uncanned_frames,
+        } satisfies LocalstorageSavedDrawing));
     }));
     const svgcontainer: SVGElement = rootel.querySelector("#svgcontainer")!;
     const mysvg: SVGSVGElement = drawcanvas();
@@ -378,7 +387,7 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         addpoint(e);
     });
 
-    loadframe(cfg.value.frame);
+    loadframe(cfg.value.frame, {skip_save: true});
     cfg.update();
 
     return rootel;

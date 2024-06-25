@@ -90,6 +90,7 @@ export function replacepage(el: HTMLElement) {
 
 export const localstorage_current_game = "animgame:current_game";
 export const localstorage_name = "animgame:name";
+export const localstorage_drawpage_saved_drawing = "animgame:drawpage:saved_drawing";
 export type LocalstorageCurrentGame = {
     game_id: GameID,
     player_id: PlayerID,

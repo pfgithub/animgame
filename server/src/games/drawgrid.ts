@@ -178,6 +178,7 @@ export const drawgrid_interface: GameInterface<GameState> = {
                     ask_for_frames: 1,
                     prompt: player.prompt!,
                     redraw_every_frame: "REDRAW",
+                    request_uuid: ctx.playerid,
                 }});
             }
         }else if(ctx.game.state === "GRID_AND_GUESS") {
