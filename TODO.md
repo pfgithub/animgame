@@ -65,3 +65,9 @@ DrawGrid:
 - [x] Score based on what # you got the image. Score the same for which images are guessed first for the author points
 - [ ] After all drawings are completed, go to a screen that explains the next phase and has a 'ready' button. Once everyone is ready, we can do a countdown and start.
 - [ ] Show who has guessed which images
+
+
+Gobal:
+
+- [ ] Make a simple jsx or function call reactive ui lib, or use react or solid js
+- [ ] Migrate to tailwind | unocss

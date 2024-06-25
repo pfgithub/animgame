@@ -1,7 +1,9 @@
-import {palettes, shuffle, type BroadcastMsg, type Frame, type FrameSet, type ImgSrlz} from "../../shared/shared.ts";
+import {palettes, shuffle, type BroadcastMsg, type CreateGameResponse, type Frame, type FrameSet, type ImgSrlz} from "../../shared/shared.ts";
 import { connect, disconnect, sendMessage } from "./connection.tsx";
 import { drawcanvas, drawpage, unsrlzImg } from "./drawpage.tsx";
 import { removeLocalStorage, getLocalStorage, localstorage_current_game, localstorage_name, replacepage, rootel, setLocalStorage, wsEventHandler, type LocalstorageCurrentGame, signal, onupdateAndNow } from "./util.tsx";
+
+// consider we can make our own framework using the web stuff reactivity in customvariants?
 
 // should we have each person make one frame or two frames?
 // two frames maybe
@@ -51,11 +53,11 @@ function entergamecode() {
 
     const animgame_btn: HTMLButtonElement = rootel.querySelector("#AnimGameBtn")!;
     animgame_btn.onclick = () => {
-        alert("TODO");
+        gamecreator(animgameCreator());
     };
     const drawgrid_btn: HTMLButtonElement = rootel.querySelector("#DrawGridBtn")!;
     drawgrid_btn.onclick = () => {
-        alert("TODO");
+        gamecreator(drawgridCreator());
     };
 
     const maindiv: HTMLDivElement = rootel.querySelector("#maindiv")!;
@@ -88,6 +90,156 @@ function entergamecode() {
         setLocalStorage(localstorage_name, name);
         waitpage();
         connect(name, code);
+    });
+}
+type DropdownChoice = {label: string, value: string};
+type FormField = {
+    kind: "integer",
+    id: string,
+    label: string,
+    default: number,
+    range: [number, number],
+} | {
+    kind: "dropdown",
+    id: string,
+    label: string,
+    default: string,
+    choices: DropdownChoice[],
+} | {
+    kind: "todo",
+    label: string,
+};
+type FormInfo = {
+    fields: FormField[],
+};
+const animgame_form_info: FormInfo = {
+    fields: [
+        {
+            kind: "integer", id: "first_round_frame_count",
+            label: "First round frame count",
+            default: 2,
+            range: [1, 5],
+        },
+        {
+            kind: "integer", id: "subsequent_rounds_frame_count",
+            label: "Subsequent rounds frame count",
+            default: 1,
+            range: [1, 5],
+        },
+        {
+            kind: "dropdown", id: "draw_your_own_prompt",
+            label: "Draw your own prompt",
+            default: "LAST",
+            choices: [
+                {value: "LAST", label: "As the last frame"},
+                {value: "FIRST", label: "As the first frame"},
+                {value: "NO", label: "Do not draw your own prompt"},
+            ],
+        },
+        {
+            kind: "dropdown", id: "redraw_every_frame",
+            label: "Frame mode",
+            default: "COPY",
+            choices: [
+                {value: "COPY", label: "Draw over previous frame"},
+                {value: "REDRAW", label: "Redraw every frame"},
+            ],
+        },
+    ],
+};
+const drawgrid_form_info: FormInfo = {
+    fields: [
+        {
+            kind: "integer", id: "word_choices",
+            label: "Number of prompt choices",
+            default: 3,
+            range: [1, 10],
+        },
+        {
+            kind: "todo",
+            label: "Custom word list",
+        },
+    ],
+};
+function genFormEl(fv: FormField): HTMLLabelElement {
+    const le = document.createElement("label");
+    le.appendChild(document.createTextNode(fv.label));
+    if(fv.kind === "integer") {
+        const inputel = document.createElement("input");
+        inputel.required = true;
+        inputel.setAttribute("style", "width:100%;box-sizing:border-box");
+        inputel.type = "number";
+        inputel.name = fv.id;
+        inputel.min = ""+fv.range[0];
+        inputel.max = ""+fv.range[1];
+        inputel.value = ""+fv.default;
+        le.appendChild(inputel);
+    }else if(fv.kind === "dropdown") {
+        const selectel = document.createElement("select");
+        selectel.required = true;
+        selectel.setAttribute("style", "width:100%;box-sizing:border-box");
+        selectel.name = fv.id;
+        for(const choice of fv.choices) {
+            const optionel = document.createElement("option");
+            optionel.textContent = choice.label;
+            optionel.value = choice.value;
+            selectel.appendChild(optionel);
+        }
+        selectel.value = fv.default;
+        le.appendChild(selectel);
+    }else le.appendChild(document.createTextNode(" (TODO)"));
+    return le;
+}
+function animgameCreator(): GameCreatorType {
+    return {endpoint: "/games/create/animgame", form_body: animgame_form_info};
+}
+function drawgridCreator(): GameCreatorType {
+    return {endpoint: "/games/create/drawgrid", form_body: drawgrid_form_info};
+}
+function genForm(info: FormInfo): HTMLDivElement {
+    const formcont = document.createElement("div");
+    formcont.style.display = "contents";
+    for(const field of info.fields) {
+        formcont.appendChild(genFormEl(field));
+    }
+    return formcont;
+}
+type GameCreatorType = {
+    endpoint: string,
+    form_body: FormInfo,
+};
+function gamecreator(gametype: GameCreatorType): void {
+    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
+        <div style="display:flex;flex-direction:column;gap:1rem">
+            <button id="cancelbtn">&lt; Cancel</button>
+            <form action="javascript:;" style="display:flex;flex-direction:column;gap:1rem">
+                <!-- insert here -->
+                <label>
+                    Name (for you)
+                    <input style="width:100%;box-sizing:border-box" required name="_name" type="text" />
+                </label>
+                <button>Create and join game</button>
+            </form>
+        </div>
+    </div></div>`;
+    const cancelbtn: HTMLButtonElement = rootel.querySelector("#cancelbtn")!;
+    cancelbtn.onclick = () => entergamecode();
+    const formv = rootel.querySelector("form")!;
+    formv.insertBefore(genForm(gametype.form_body), formv.firstChild);
+    formv.addEventListener("submit", e => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const formdata = new FormData(e.target as any);
+        fetch(gametype.endpoint, {
+            method: "POST",
+            body: formdata,
+        }).then(r => r.json()).then((r: CreateGameResponse) => {
+            const namev = formdata.get("_name")!;
+            connect(namev as string, r.game_id);
+        }).catch(e => {
+            alert("Error: "+e);
+        });
     });
 }
 function handleMessage(msg: BroadcastMsg) {
@@ -172,7 +324,7 @@ function choosepalettesandready(game_code: string, in_taken_palettes: number[]) 
     }))
     const palettesel: HTMLDivElement = rootel.querySelector("#palettes")!;
     const readybefore: HTMLButtonElement = rootel.querySelector("#readybefore")!;
-    readybefore.parentElement!.insertBefore(makereadybtn("Ready", false), readybefore);
+    readybefore.parentElement!.insertBefore(makereadybtn("Everyone's in", false), readybefore);
     const shufpal = [...palettes.entries()];
     shuffle(shufpal);
     for(const [i, palette] of shufpal) {

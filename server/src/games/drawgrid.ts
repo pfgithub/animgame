@@ -55,8 +55,6 @@ type Player = {
 type GameState = {
     config: {
         word_choices: number,
-        guessing_min_time_ms: number,
-        guessing_max_time_ms: number,
     },
     state: GameStateEnum,
     players: Player[],
@@ -139,8 +137,6 @@ export const drawgrid_interface: GameInterface<GameState> = {
         return {
             config: {
                 word_choices: 3,
-                guessing_min_time_ms: 10 * 1000,
-                guessing_max_time_ms: 2 * 60 * 1000,
             },
             state: "JOIN_AND_PALETTE",
             players: [],

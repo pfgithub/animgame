@@ -141,6 +141,9 @@ export type StrokeSrlz = {
 
 export type Vec2 = [number, number];
 
+export type CreateGameResponse = {
+    game_id: GameID,
+};
 
 export function shuffle<T>(array: T[]) {
     let currentIndex = array.length;
