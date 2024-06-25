@@ -304,11 +304,24 @@ function showreviewreveal(frameset: FrameSet, ready: boolean) {
                 <h2 id="prompthere" style="margin:0"></h2>
             </div>
             <div id="svgcontainer" style="border: 4px solid gray;display:block"></div>
-            <div id="nextcontainer" style="display:flex;justify-content:end"></div>
+            <div style="display:flex;flex-wrap:wrap;align-items:center">
+                <a id="dnllink">Download</a>
+                <div style="flex:1"></div>
+                <div style="justify-self:end" id="nextbtncontainer"></div>
+            </div>
+            <label style="display:block">
+                <div>Speed:</div>
+                <input id="speedinput" style="display:block;width:100%" type="range" min=100 max=400 />
+            </label>
         </div>
     </div></div>`;
-    const nextcontainer: HTMLButtonElement = rootel.querySelector("#nextcontainer")!;
-    nextcontainer.appendChild(makereadybtn("Next", ready));
+    const speedinput: HTMLInputElement = rootel.querySelector("#speedinput")!;
+
+    const dnllink: HTMLAnchorElement = rootel.querySelector("#dnllink")!;
+    dnllink.download = (frameset.prompt ?? "image").replaceAll(/^[a-zA-Z0-9 ]$/g, "_") + ".svg";
+
+    const nextbtncontainer: HTMLButtonElement = rootel.querySelector("#nextbtncontainer")!;
+    nextbtncontainer.appendChild(makereadybtn("Next", ready));
 
     const prompthere: HTMLHeadingElement = rootel.querySelector("#prompthere")!;
     prompthere.textContent = ""+frameset.prompt;
@@ -341,17 +354,35 @@ function showreviewreveal(frameset: FrameSet, ready: boolean) {
     animation.setAttribute("attributeType", "XML");
     animation.setAttribute("type", "translate");
     animation.setAttribute("values", offsets.map(of => `${of},0`).join(";"));
-    animation.setAttribute("dur", (frameset.images.length * 200)+"ms");
     animation.setAttribute("repeatCount", "indefinite");
     animation.setAttribute("calcMode", "discrete");
     root_group.appendChild(animation);
 
-    mysvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    const svgstr = "data:image/svg+xml,"+encodeURIComponent(mysvg.outerHTML);
+    speedinput.value = "200";
+
+    let prevblob: string | null = null;
+
     const svgimg = document.createElement("img");
-    svgimg.src = svgstr;
+    const updSvgStr = () => {
+        animation.setAttribute("dur", (frameset.images.length * +speedinput.value)+"ms");
+        mysvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+        if(prevblob != null) URL.revokeObjectURL(prevblob);
+        const blobv = URL.createObjectURL(new Blob([mysvg.outerHTML], {
+            type: "image/svg+xml",
+        }));
+        prevblob = blobv;
+
+        svgimg.src = blobv;
+        dnllink.href = blobv;
+    };
+    updSvgStr();
     svgimg.setAttribute("style", "display:block;aspect-ratio:1 / 1;width:100%");
     svgcontainer.appendChild(svgimg);
+
+    speedinput.addEventListener("input", () => {
+        updSvgStr();
+    })
 }
 function showchooseprompt(choices: string[], choice_initial?: string) {
     const current_choice = signal(choice_initial);

@@ -13,9 +13,9 @@ TODO:
 - [x] Indicate your and other people's selections in palettes
 - [x] Don't gray out when you switch to other frames
 - [x] Add 'COPY' mode where you don't have to redraw every frame
+- [x] Add animation speed slider in review (it won't be an image tag anymore but we can add a download link)
+- [x] Add download button in review (svg for now)
 - [ ] In 'REDRAW' mode, add a button to toggle onion skin
-- [ ] Add animation speed slider in review (it won't be an image tag anymore but we can add a download link)
-  - [ ] Add download button in review (svg for now)
 - [ ] Change line size buttons to be little circles instead of numbers
 - [ ] Indicate which frames are yours and which aren't
 - [ ] Show total frame count
