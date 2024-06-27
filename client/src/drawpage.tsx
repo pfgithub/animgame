@@ -176,8 +176,9 @@ export function drawpage(context: ContextFrames): HTMLDivElement {
         cfg.value.frame = i;
         const pfdata = getframedata(i - 1);
         const framev: ImgSrlz = getframedata(i);
-        if(context.redraw_every_frame === "COPY") {
-            framev.bgimg = [...pfdata.bgimg ?? [], ...pfdata.undo_strokes];
+        if(context.redraw_every_frame === "COPY" && pfdata != null) {
+            const new_bgimg = [...pfdata.bgimg ?? [], ...pfdata.undo_strokes];
+            if(new_bgimg.length > 0) framev.bgimg = new_bgimg;
         }
         if(onionskin) rendersrlzos(framev); else rendersrlz(framev);
         cfg.update();
