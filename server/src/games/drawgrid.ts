@@ -61,8 +61,8 @@ type GameState = {
     initial_game_code: string,
 };
 
-
-const default_word_list = (await Bun.file("data/drawgrid_words.txt").text()).split("\n").map(l => l.trim()).filter(l => l);
+// filter out "a" and "if"
+const default_word_list = (await Bun.file("data/drawgrid_words.txt").text()).split("\n").map(l => l.trim()).filter(l => l.length >= 3);
 
 function startGame(ctx: GameCtxNoPlayer<GameState>): void {
     shuffle(ctx.game.players);
