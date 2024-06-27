@@ -41,8 +41,6 @@ TODO:
 - [ ] Show the color palette you selected on your prompt screen
 - [ ] Help text for new players.
 - [ ] Fix the bug that when a player disconnects their color palette isn't freed until someone switches palettes
-- [ ] Figure out how to deploy!
-  - [ ] Maybe add branding to downloaded SVGs? Some kind of bar at the bottom that says like 'Prompt by <name>' and has the game title so you can gooble search
 - [ ] Discord activities developer preview? Add to interpunct-app-games?
 
 Known issues:
@@ -74,6 +72,12 @@ DrawGrid:
 - [ ] After all drawings are completed, go to a screen that explains the next phase and has a 'ready' button. Once everyone is ready, we can do a countdown and start.
 - [ ] Show who has guessed which images
 
+
+Deployment:
+- [ ] This is how we load balance https://www.gamedev.net/forums/topic/710030-connecting-players-to-the-same-server-if-they-are-in-the-same-match/
+  - Basically the easy way is making a subdomain per server, and having the webserver choose which subdomain to send you to based on your game id.
+- [ ] Maybe add branding to downloaded SVGs? Some kind of bar at the bottom that says like 'Prompt by <name>' and has the game title so you can gooble search
+- [ ] https://docs.colyseus.io/#next-steps Colysius might handle this? It's designed for react, but that's okay
 
 Gobal:
 
