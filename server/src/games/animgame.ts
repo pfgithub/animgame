@@ -46,7 +46,7 @@ export function createGame(initial_game_code: string): GameState {
             first_round_frame_count: 2,
             subsequent_rounds_frame_count: 1,
             draw_your_own_prompt: "LAST",
-            redraw_every_frame: "COPY",
+            redraw_every_frame: "REDRAW",
         },
         state: "ALLOW_JOINING",
         players: [],

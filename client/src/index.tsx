@@ -139,10 +139,10 @@ const animgame_form_info: FormInfo = {
         {
             kind: "dropdown", id: "redraw_every_frame",
             label: "Frame mode",
-            default: "COPY",
+            default: "REDRAW",
             choices: [
-                {value: "COPY", label: "Draw over previous frame"},
                 {value: "REDRAW", label: "Redraw every frame"},
+                {value: "COPY", label: "Draw over previous frame"},
             ],
         },
     ],

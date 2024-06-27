@@ -16,6 +16,7 @@ TODO:
 - [x] Add animation speed slider in review (it won't be an image tag anymore but we can add a download link)
 - [x] Add download button in review (svg for now)
 - [x] Keep in-progress drawings on reload
+- [x] Default to redraw mode
 - [ ] In 'REDRAW' mode, add a button to toggle onion skin
 - [ ] In 'COPY' mode, make sure to not keep increasing the amount of data in the
        frames. We can have the server send frame history instead.
