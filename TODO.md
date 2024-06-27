@@ -17,6 +17,8 @@ TODO:
 - [x] Add download button in review (svg for now)
 - [x] Keep in-progress drawings on reload
 - [ ] In 'REDRAW' mode, add a button to toggle onion skin
+- [ ] In 'COPY' mode, make sure to not keep increasing the amount of data in the
+       frames. We can have the server send frame history instead.
 - [ ] Change line size buttons to be little circles instead of numbers
 - [ ] Indicate which frames are yours and which aren't
 - [ ] Show total frame count
