@@ -17,6 +17,7 @@ TODO:
 - [x] Add download button in review (svg for now)
 - [x] Keep in-progress drawings on reload
 - [x] Default to redraw mode
+- [ ] Rename 'Everyone's In' back to 'Ready'
 - [ ] In 'REDRAW' mode, add a button to toggle onion skin
 - [ ] In 'COPY' mode, make sure to not keep increasing the amount of data in the
        frames. We can have the server send frame history instead.
@@ -56,6 +57,9 @@ More games to make:
   & you gotta guess them all. Points for being guessed first & guessing
   first.
 - [ ] PoisionDraw : Draw a thing. Someone else sees the drawing and writes the poision word. First person gets a little time to modify their drawing make sure people don't guess the poision word. Guessing. If you guess the real word, you get points & drawer gets points. If you guess the poison word, poisoner gets points but no one else does.
+- [ ] PanoramaGame : You draw a frame. The next person has your frame left and continues it right. Repeat n times. Show the panoramas at the end. Or same thing with zooming out or zooming in
+  - OOh it could be cool with zooming out, and then inversing it at the end to make
+    an animation zooming in. It would be like 50% of the frame and then you draw in there. And the inner parts are hidden, they're just filled a solid color.
 
 Transparent multiplayer?
 - It would be nice to have a multiplayer setup in code where anyone can
