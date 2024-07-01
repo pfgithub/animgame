@@ -50,6 +50,8 @@ TODO:
 - [ ] Speed slider is backwards - also make it a log scale
 - [ ] Pause for a sec at the end of the anim?
 - [ ] Could make a mode where the last person sees the last frame and first frame and puts a frame in between to make it loop
+- [ ] Add config to set game length - make sure last player still draws last, but for big groups not everyone has to draw on everything
+- [ ] Recommended configs in game creation based on player count. Ideally you set config after players join, otherwise you pre select players
 
 Known issues:
 - Because we're using websockets instead of UDP, outdated packets will queue up to be sent. This can be mitigated by checking the websocket fill amount in bun maybe? It's also probably not a problem with such a low volume of data.
