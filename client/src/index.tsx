@@ -591,9 +591,9 @@ function showgridandguess(images: {id: string, palette: number, value: string}[]
     // - 1 => min(w, h)
     // - 2 => min(w / 2, h / 2)
     rootel.innerHTML = `<div id="rootitm" style="width:100vw;height:100vh;margin:0 auto;background-color:white"><div style="padding:1rem;box-sizing:border-box;height:100%">
-        <div style="height:100%;display:flex;flex-direction:row;gap:1rem">
-            <div id="gridzone" style="display:flex;flex-wrap:wrap;align-content:center;justify-content:center;flex:1;overflow:hidden;height:100%"></div>
-            <div style="width:min(20rem,30vw);height:100%;overflow-y:scroll;overflow-x:hidden">
+        <div class="mobileturn" style="height:100%;display:flex;flex-direction:row;gap:1rem">
+            <div class="mobileheight" id="gridzone" style="display:flex;flex-wrap:wrap;align-content:center;justify-content:center;flex:1;overflow:hidden;height:100%"></div>
+            <div class="mobileclear" style="width:min(20rem,30vw);height:100%;overflow-y:scroll;overflow-x:hidden">
                 <form id="chatform" action="javascript:;" style="display:flex">
                     <input id="guessinput" name="guess" style="flex:1;width:0"></input>
                     <button>Guess</button>
