@@ -48,6 +48,8 @@ TODO:
 - [ ] Make palettes have more distinct colors to be easier to differentiate
 - [ ] More compatible download format
 - [ ] Speed slider is backwards - also make it a log scale
+- [ ] Pause for a sec at the end of the anim?
+- [ ] Could make a mode where the last person sees the last frame and first frame and puts a frame in between to make it loop
 
 Known issues:
 - Because we're using websockets instead of UDP, outdated packets will queue up to be sent. This can be mitigated by checking the websocket fill amount in bun maybe? It's also probably not a problem with such a low volume of data.
