@@ -44,6 +44,7 @@ TODO:
 - [ ] Discord activities developer preview? Add to interpunct-app-games?
 - [ ] Rename 'Everyone's in' back to 'Ready'
 - [ ] Rename 'Reset' back to 'Clear'
+- [ ] REMOVE Onion skinning on frames you didn't draw!
 
 Known issues:
 - Because we're using websockets instead of UDP, outdated packets will queue up to be sent. This can be mitigated by checking the websocket fill amount in bun maybe? It's also probably not a problem with such a low volume of data.

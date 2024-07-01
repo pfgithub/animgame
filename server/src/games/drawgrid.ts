@@ -145,7 +145,11 @@ export const drawgrid_interface: GameInterface<GameState> = {
     },
     join(game_id, game, player_name) {
         if(game.players.some(pl => pl.id === player_name)) return player_name as PlayerID;
-        if(game.state !== "JOIN_AND_PALETTE") throw new MsgError("No new players are allowed to join the game.");
+        if(game.state !== "JOIN_AND_PALETTE") {
+            const prev_player = game.players.find(pl => pl.name.trim().toLowerCase() === player_name.trim().toLowerCase());
+            if(prev_player != null) return prev_player.id;
+            throw new MsgError("No new players are allowed to join the game.");
+        }
         if(game.players.length >= MAX_PLAYERS) throw new MsgError("The game is full.");
         if(game.players.some(pl => pl.name === player_name)) throw new MsgError("Player name already taken.");
         const plid = crypto.randomUUID() as PlayerID;
