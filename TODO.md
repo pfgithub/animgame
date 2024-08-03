@@ -81,6 +81,7 @@ DrawGrid:
 - [x] Score based on what # you got the image. Score the same for which images are guessed first for the author points
 - [ ] After all drawings are completed, go to a screen that explains the next phase and has a 'ready' button. Once everyone is ready, we can do a countdown and start.
 - [ ] Show who has guessed which images
+- [ ] In chat make the colors go from green to red based on if you guess 1st 2nd 3rd 4th 5th etc
 
 
 Deployment:
