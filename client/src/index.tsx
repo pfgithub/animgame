@@ -309,65 +309,101 @@ function showguessprompt(image: string, prompts: string[]) {
 function choosepalettesandready(game_code: string, in_taken_palettes: number[]) {
     let your_palette = -1;
     const taken_palettes = signal(in_taken_palettes);
-    rootel.innerHTML = `<div id="mainel" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
-        <div style="display:flex;flex-direction:column;gap:1rem">
-            <div>Game Code: <b id="gamecodehere"></b></div>
-            <div id="readybefore">ChoosePalettesAndReady</div>
-            <div id="palettes" class="choosepalettesandready--onecolwhenthin" style="display:grid;gap:0.25rem"></div>
-        </div>
-    </div></div>`;
+    rootel.innerHTML = `
+        <div id="mainel" style="max-width:40rem; margin:2rem auto; background-color:#f9f9f9; border-radius:10px; box-shadow:0 4px 8px rgba(0,0,0,0.1);">
+            <div style="padding:2rem;">
+                <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                    <div>Game Code: <b id="gamecodehere"></b></div>
+                    <div id="readybefore" style="font-weight:bold; font-size:1.2rem;">Choose Palettes and Ready</div>
+                    <div id="palettes" class="choosepalettesandready--onecolwhenthin" style="display:grid; gap:0.5rem;"></div>
+                </div>
+            </div>
+        </div>`;
+    
     const gchere: HTMLElement = rootel.querySelector("#gamecodehere")!;
     gchere.textContent = game_code;
+    
     const mainel: HTMLDivElement = rootel.querySelector("#mainel")!;
     mainel.appendChild(wsEventHandler(ev => {
-        if(ev.kind === "update_taken_palettes") {
+        if (ev.kind === "update_taken_palettes") {
             taken_palettes.value = ev.taken;
             taken_palettes.update();
-        }else if(ev.kind === "confirm_your_taken_palette") {
+        } else if (ev.kind === "confirm_your_taken_palette") {
             your_palette = ev.palette;
             taken_palettes.update();
         }
-    }))
+    }));
+
     const palettesel: HTMLDivElement = rootel.querySelector("#palettes")!;
     const readybefore: HTMLButtonElement = rootel.querySelector("#readybefore")!;
     readybefore.parentElement!.insertBefore(makereadybtn("Everyone's in", false), readybefore);
+    
     const shufpal = [...palettes.entries()];
     shuffle(shufpal);
-    for(const [i, palette] of shufpal) {
+
+    for (const [i, palette] of shufpal) {
         const palettebtn = document.createElement("button");
-        palettebtn.setAttribute("style", "display:flex;width:100%;border:none;background-color:transparent;padding:0");
+        palettebtn.setAttribute("style", `
+            display: flex; 
+            width: 100%; 
+            border: none; 
+            background-color: transparent; 
+            padding: 0;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        `);
         palettebtn.innerHTML = `
-            <div class="_proot" style="border-radius:1rem;flex:1;display:flex;border:2px solid gray">
-                <div class="_here" style="border-radius:calc(1rem - 2px);border:2px solid white;flex:1;display:flex"></div>
+            <div class="_proot" style="
+                border-radius: 1rem;
+                flex: 1;
+                display: flex;
+                border: 2px solid gray;
+                overflow: hidden;
+            ">
+                <div class="_here" style="
+                    border-radius: calc(1rem - 2px); 
+                    border: 2px solid white; 
+                    flex: 1; 
+                    display: flex;
+                "></div>
             </div>
         `;
+
+        let hover = false;
+        palettebtn.onmouseover = () => {hover = true; taken_palettes.update()};
+        palettebtn.onmouseout = () => {hover = false; taken_palettes.update()};
+
         palettebtn.onclick = () => {
-            sendMessage({kind: "choose_palette", palette: i});
+            sendMessage({ kind: "choose_palette", palette: i });
         };
+
         const proot: HTMLDivElement = palettebtn.querySelector("._proot")!;
         const pbin: HTMLDivElement = palettebtn.querySelector("._here")!;
+
         onupdateAndNow(taken_palettes, () => {
-            const v = taken_palettes.value.includes(i);
-            const m = i === your_palette;
-            palettebtn.disabled = v;
+            const taken = taken_palettes.value.includes(i);
+            const mine = i === your_palette;
+            palettebtn.disabled = taken;
             palettebtn.style.opacity = "1.0";
-            pbin.style.opacity = v ? "0.2" : "1.0";
-            proot.style.borderColor = v || m ? "transparent" : "gray";
-            pbin.style.borderColor = v && !m ? "gray" : "transparent";
-            proot.style.outline = m ? "2px solid red" : "";
+            pbin.style.opacity = taken ? "0.2" : "1.0";
+            proot.style.borderColor = taken || mine ? "transparent" : "gray";
+            pbin.style.borderColor = taken && !mine ? "gray" : "transparent";
+            proot.style.outline = mine ? "2px solid red" : taken ? "2px solid blue" : "";
+            palettebtn.style.transform = hover && !taken ? "scale(1.02)" : "";
+            palettebtn.style.cursor = !taken ? "pointer" : "default";
         });
-        for(let i = 0; i < palette.length; i++) {
+
+        for (let i = 0; i < palette.length; i++) {
             const colorprev = palette[i - 1] ?? "transparent";
             const color = palette[i];
             {
                 const palettesquare = document.createElement("div");
-                palettesquare.setAttribute("style", "height:3rem;flex:1;background-color:"+colorprev);
-                palettesquare.innerHTML = `<div style="width:100%;height:100%;background-color:${color};border-radius:calc(1rem - 4px) 0 0 calc(1rem - 4px)"></div>`;
-                pbin.appendChild(palettesquare);
-            }
-            {
-                const palettesquare = document.createElement("div");
-                palettesquare.setAttribute("style", "height:3rem;flex:1;background-color:"+color+";"+(i === palette.length - 1 ? "border-radius:0 calc(1rem - 4px) calc(1rem - 4px) 0" : ""));
+                    palettesquare.setAttribute("style", "height:3rem;flex:1;background-color:"+colorprev);
+                    palettesquare.innerHTML = `<div style="width:100%;height:100%;background-color:${color};border-radius:calc(1rem - 4px) 0 0 calc(1rem - 4px)"></div>`;
+                    pbin.appendChild(palettesquare);
+                }
+                {
+                    const palettesquare = document.createElement("div");
+                    palettesquare.setAttribute("style", "height:3rem;flex:1;background-color:"+color+";"+(i === palette.length - 1 ? "border-radius:0 calc(1rem - 4px) calc(1rem - 4px) 0" : ""));
                 pbin.appendChild(palettesquare);
             }
         }
