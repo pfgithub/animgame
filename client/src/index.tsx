@@ -15,41 +15,47 @@ import { removeLocalStorage, getLocalStorage, localstorage_current_game, localst
 
 function entergamecode() {
     // TODO autofill these with the previous values
-    rootel.innerHTML = `<div id="rootitm" style="max-width:40rem;margin:0 auto;background-color:white"><div style="padding:2rem">
-        <div id="maindiv" style="display:flex;flex-direction:column;gap:1rem">
-            <form id="myform" action="javascript:;">
-                <label>
-                    <div>Name</div>
-                    <div style="display:flex;flex-wrap:wrap;flex-direction:row">
-                        <div style="flex:1"><input id="nameinput" required type="text" name="name" style="font-size:3rem;width:100%" /></div>
-                    </div>
-                </label>
-                <label>
-                    <div>Game code</div>
-                    <div style="display:flex;flex-wrap:wrap;flex-direction:row">
-                        <div style="flex:1"><input required autocomplete="off" type="text" name="code" style="font-size:3rem;width:100%;text-transform:uppercase" /></div>
-                        <button style="padding:0 1rem">Join</button>
-                    </div>
-                </label>
-            </form>
-            <details>
-                <summary>Create lobby</summary>
-                <div style="display:flex;flex-direction:column">
-                    <button id="AnimGameBtn">
-                        <div>AnimGame</div>
-                        <div>Make a bunch of little animations with your friends</div>
-                    </button>
-                    <button id="DrawGridBtn">
-                        <div>DrawGrid</div>
-                        <div>Compete to see who's drawings are guessed the fastest</div>
-                    </button>
-                </div>
-            </details>
-            <div>
-                Past Games: [TODO]
+    rootel.innerHTML = `
+    <div id="rootitm" style="max-width:40rem; margin:2rem auto; background-color:#f9f9f9; border-radius:10px; box-shadow:0 4px 8px rgba(0,0,0,0.1);">
+      <div style="padding:2rem;">
+        <div id="maindiv" style="display:flex; flex-direction:column; gap:1.5rem;">
+          
+          <form id="myform" action="javascript:;" style="display: flex; flex-direction: column; gap: 1rem;">
+            <label style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <span style="font-weight:bold; font-size:1.2rem;">Name</span>
+              <input id="nameinput" required type="text" name="name" style="font-size:1.5rem; width:100%; padding:0.5rem; border:1px solid #ccc; border-radius:5px;" />
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <span style="font-weight:bold; font-size:1.2rem;">Game code</span>
+              <div style="display: flex; gap: 1rem;">
+                <input required autocomplete="off" type="text" name="code" style="font-size:1.5rem; flex:1; padding:0.5rem; border:1px solid #ccc; border-radius:5px; text-transform:uppercase;" />
+                <button style="padding:0.5rem 1rem; font-size:1rem; background-color:#007BFF; color:white; border:none; border-radius:5px; cursor:pointer; transition:background-color 0.3s;">Join</button>
+              </div>
+            </label>
+          </form>
+          
+          <details style="background-color:#fff; border-radius:5px; border:1px solid #ccc; padding:1rem;">
+            <summary style="font-size:1.2rem; font-weight:bold; cursor:pointer;">Create Lobby</summary>
+            <div style="display:flex; flex-direction:column; gap:1rem; margin-top:1rem;">
+              <button id="AnimGameBtn" style="padding:1rem; background-color:#F3F4F6; border:1px solid #ccc; border-radius:5px; text-align:left; cursor:pointer; transition:background-color 0.3s;">
+                <div style="font-weight:bold;">AnimGame</div>
+                <div style="font-size:0.9rem; color:#666;">Make a bunch of little animations with your friends</div>
+              </button>
+              <button id="DrawGridBtn" style="padding:1rem; background-color:#F3F4F6; border:1px solid #ccc; border-radius:5px; text-align:left; cursor:pointer; transition:background-color 0.3s;">
+                <div style="font-weight:bold;">DrawGrid</div>
+                <div style="font-size:0.9rem; color:#666;">Compete to see whose drawings are guessed the fastest</div>
+              </button>
             </div>
+          </details>
+          
+          <div style="padding:1rem; background-color:#fff; border:1px solid #ccc; border-radius:5px;">
+            <strong>Past Games:</strong> [TODO]
+          </div>
+          
         </div>
-    </div></div>`;
+      </div>
+    </div>
+  `;
 
     const animgame_btn: HTMLButtonElement = rootel.querySelector("#AnimGameBtn")!;
     animgame_btn.onclick = () => {
