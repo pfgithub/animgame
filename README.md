@@ -23,7 +23,10 @@ of mini animations as you have players.
 ```
 git clone https://github.com/pfgithub/animgame
 cd animgame
-cd server
+cd client
+bun install
+cd ../server
+bun install
 bun src/index.ts
 ```
 
